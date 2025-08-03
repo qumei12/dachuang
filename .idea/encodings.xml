@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding" defaultCharsetForPropertiesFiles="UTF-8">
+    <file url="file://$PROJECT_DIR$/src/allthings/GetMA.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/allthings/GetRecommand.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/allthings/GetRelation.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/allthings/Show.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/allthings/getRation.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/com/wangyan/business/Search.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/com/wangyan/experiment/Experiment.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/com/wangyan/experiment/Product.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/com/wangyan/index/IndexUtil.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/com/wangyan/servlets/Search.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/dbhelper/DBHelper.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/filehelper/GetMA.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/main/Main.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/mian/Go.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/model/ICFModel.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/model/LDAModel.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/model/UCFModel.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/readme.txt" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/test/Test.java" charset="GBK" />
+    <file url="PROJECT" charset="UTF-8" />
+  </component>
+</project>

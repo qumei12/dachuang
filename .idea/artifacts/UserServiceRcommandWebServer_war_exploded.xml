@@ -1,0 +1,16 @@
+<component name="ArtifactManager">
+  <artifact type="exploded-war" name="UserServiceRcommandWebServer:war exploded">
+    <output-path>$PROJECT_DIR$/classes/artifacts/UserServiceRcommandWebServer_war_exploded</output-path>
+    <root id="root">
+      <element id="directory" name="WEB-INF">
+        <element id="directory" name="classes">
+          <element id="module-output" name="UserServiceRcommandWebServer" />
+        </element>
+        <element id="directory" name="lib">
+          <element id="library" level="module" name="junit4" module-name="UserServiceRcommandWebServer" />
+        </element>
+      </element>
+      <element id="javaee-facet-resources" facet="UserServiceRcommandWebServer/web/Web" />
+    </root>
+  </artifact>
+</component>
