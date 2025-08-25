@@ -39,7 +39,7 @@ public class Experiment {
 	
 	public Experiment() {
 		if (ldaModel == null) {
-			ldaModel = new LDAModel(top_k);
+			ldaModel = new LDAModel();
 			//System.out.println("1 Initialize the model ...");
 			ldaModel.initializeLDAModel();
 			//System.out.println("2 Learning and Saving the model ...");

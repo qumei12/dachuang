@@ -34,7 +34,7 @@ public class Main {
 			switch (choice) {
 			case 1:
 				if(model == null){
-					model = new LDAModel(top_k);
+					model = new LDAModel();
 					System.out.println("1 Initialize the model ...");
 					model.initializeLDAModel();
 					System.out.println("2 Learning and Saving the model ...");
@@ -48,7 +48,7 @@ public class Main {
 					System.out.println("5 Test Accuracy");
 					model.accuracy(top_k);// 三层时用于计算指标的
 				}
-				//model.Hamming();
+				//model.Hamming(top_k);
 				break;
 			case 2:
 

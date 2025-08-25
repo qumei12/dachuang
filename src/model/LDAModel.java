@@ -34,9 +34,9 @@ public class LDAModel {
 	int saveStep;
 	int beginSaveIters;
 
-	int top_k;
+//	int top_k;
 
-	public LDAModel(int top_k) {
+	public LDAModel() {// 修改构造函数，不接收top_k参数
 
 		interestAmount = 80;
 		// userAmount = 100;
@@ -48,7 +48,7 @@ public class LDAModel {
 		iterations = 100;
 		saveStep = 10;
 		beginSaveIters = 80;
-		this.top_k = top_k;
+//		this.top_k = top_k;
 	}
 
 	public void initializeLDAModel() {
@@ -306,7 +306,7 @@ public class LDAModel {
 
 		// lda.twords phi[][] K*V
 		writer = new BufferedWriter(new FileWriter(resPath + modelName + ".twords"));
-		int topNum = top_k; // Find the top 20 topic words in each topic
+		int topNum = 20; // Find the top 20 topic words in each topic
 		for(int i = 0;i < interestAmount;i++){
 			Set<String> set = new HashSet<String>();
 			List<Integer> tWordsIndexArray = new ArrayList<Integer>();
@@ -514,7 +514,7 @@ public class LDAModel {
 		System.out.println("Hamming: " + hamming);
 	}
 	
-	public void Hamming(){
+	public void Hamming(int top_k){
 		double[][] Q = new double[userAmount][userAmount];
 		for (int i = 0; i < userAmount - 1; i++) {
 			for (int j = i + 1; j < userAmount; j++) {

@@ -30,7 +30,7 @@ public class Recommand extends HttpServlet {
     /**
      * @see HttpServlet#HttpServlet()
      */
-	
+
 	//private	ServletContext
 	LDAModel ldaModel = null;
 	int top_k = 3;
@@ -43,7 +43,7 @@ public class Recommand extends HttpServlet {
         super();
         // TODO Auto-generated constructor stub
         if(ldaModel == null){
-        	ldaModel = new LDAModel(top_k);
+        	ldaModel = new LDAModel();
 			System.out.println("1 Initialize the model ...");
 			ldaModel.initializeLDAModel();
 			System.out.println("2 Learning and Saving the model ...");
@@ -70,15 +70,15 @@ public class Recommand extends HttpServlet {
 		String str = request.getParameter("idList");
 		//String[] params_str = (String[]) obj_param;
 		String[] params_str = str.split(",");
-		
+
 		int[] params = new int[params_str.length];
-		
+
 		for(int i = 0;i < params_str.length;i++){
 			params[i] = Integer.parseInt(params_str[i]);
 		}
-		
+
 		List<List<Integer>> resultList = new ArrayList<List<Integer>>();
-		
+
 		for(int i = 0;i < params.length;i++){
 			int[] rec = recommand[i];
 			List<List<Integer>> list = Go.mian(rec, top_k);
@@ -91,16 +91,16 @@ public class Recommand extends HttpServlet {
 			while (set.size() < 3) {
 				set.add((int)(Math.random() * list.size()));
 			}
-			
+
 			Iterator<Integer> iterator = set.iterator();
-			
+
 			while (iterator.hasNext()) {
 				Integer integer = (Integer) iterator.next();
 				int id = integer.intValue();
 				resultList.add(list.get(id));
 			}
 		}
-		
+
 		
 		List<List<API>> result = new ArrayList<>();
 		
