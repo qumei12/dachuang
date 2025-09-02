@@ -41,14 +41,17 @@ public class Search extends HttpServlet {
 	Map<Integer, String> apiIndex_Name = null;
 
 	// 添加预设topK配置（用于API推荐）
-	private static final Map<String, Integer> MASHUP_TOPK_CONFIG = new HashMap<String, Integer>() {{
-		put("Bing Maps Mashup Tilt Shift", 5);
-		put("Twitter", 3);
-		put("Google Maps", 7);
-		put("YouTube", 4);
-		put("Flickr", 6);
+	private static final Map<String, Integer> MASHUP_TOPK_CONFIG = new HashMap<String, Integer>();
+
+	// 静态初始化块
+	static {
+		MASHUP_TOPK_CONFIG.put("Bing Maps Mashup Tilt Shift", 5);
+		MASHUP_TOPK_CONFIG.put("Twitter", 3);
+		MASHUP_TOPK_CONFIG.put("Google Maps", 7);
+		MASHUP_TOPK_CONFIG.put("YouTube", 4);
+		MASHUP_TOPK_CONFIG.put("Flickr", 6);
 		// 可以继续添加更多预设
-	}};
+	}
 
 	// 默认topK值
 	private static final int DEFAULT_TOPK = 3;

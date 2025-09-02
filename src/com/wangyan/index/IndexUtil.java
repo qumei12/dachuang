@@ -119,8 +119,8 @@ public class IndexUtil {
 		}
 	}
 
-	// 兴趣得分类
-	private static class InterestScore {
+	// 兴趣得分类 - 改为包级私有（去掉private static）
+	static class InterestScore {
 		int interestId;
 		int position;
 
