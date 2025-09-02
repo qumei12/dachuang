@@ -18,11 +18,11 @@ public class Show {
 		try {
 			double a = rr.getRecallRate(tree, trainMA);
 			//System.out.println(a);
-			System.out.println("算法召回率：" + a);
+			System.out.println("绠楁硶鍙洖鐜囷細" + a);
 			
 			double b = rr.getAccuracyRate(tree, trainMA);
 			//System.out.println(b);
-			System.out.println("算法准确率：" + b);
+			System.out.println("绠楁硶鍑嗙‘鐜囷細" + b);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

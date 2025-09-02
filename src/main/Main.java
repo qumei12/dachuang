@@ -14,7 +14,7 @@ public class Main {
 	public static void main(String[] args) throws IOException {
 
 		boolean exit = true;
-		boolean stages = false;// ÎªtrueÊ±ÊÇÎå²ãÍÆ¼ö
+		boolean stages = false;// ä¸ºtrueæ—¶æ˜¯äº”å±‚æ¨è
 
 		LDAModel model = null;
 		
@@ -25,7 +25,7 @@ public class Main {
 			System.out.println("3.ICF");
 			System.out.println("4.TRUST");
 			System.out.println("5.EXIT");
-			System.out.print("ÇëÊäÈëÄúµÄÑ¡Ôñ£º");
+			System.out.print("è¯·è¾“å…¥æ‚¨çš„é€‰æ‹©ï¼š");
 
 			int choice = scanner.nextInt();
 
@@ -46,7 +46,7 @@ public class Main {
 				model.topKRecommand(top_k);
 				if (stages == false) {
 					System.out.println("5 Test Accuracy");
-					model.accuracy(top_k);// Èı²ãÊ±ÓÃÓÚ¼ÆËãÖ¸±êµÄ
+					model.accuracy(top_k);// ä¸‰å±‚æ—¶ç”¨äºè®¡ç®—æŒ‡æ ‡çš„
 				}
 				//model.Hamming(top_k);
 				break;
@@ -63,7 +63,7 @@ public class Main {
 				break;
 			case 5:
 				exit = false;
-				System.out.println("ÍË³ö£¡");
+				System.out.println("é€€å‡ºï¼");
 				break;
 			default:
 				break;

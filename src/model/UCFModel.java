@@ -100,8 +100,8 @@ public class UCFModel {
 				}
 			}
 			hamming = 1 - sum_q / ((userAmount - 1) * userAmount / 2);
-			System.out.println("º£Ã÷¾àÀë£º" + hamming);
-			// 5²ãµÄº£Ã÷¾àÀëµ¥Ëã
+			System.out.println("æµ·æ˜è·ç¦»ï¼š" + hamming);
+			// 5å±‚çš„æµ·æ˜è·ç¦»å•ç®—
 		} else {
 			accuracy(recommand, top_k);
 		}
@@ -128,7 +128,7 @@ public class UCFModel {
 		}
 		System.out.println("Accuracy:" + ((double) sum * 10) / (top_k * userAmount));
 
-		// ÕÙ»ØÂÊ
+		// å¬å›ç‡
 		int like = 0;
 		for (int i = 0; i < userAmount; i++) {
 			for (int j = 0; j < serviceAmount; j++) {
@@ -141,7 +141,7 @@ public class UCFModel {
 		double recall = (double) sum/ like;
 		System.out.println("Recall rate: " + recall);
 
-		// º£Ã÷¾àÀë
+		// æµ·æ˜è·ç¦»
 
 		double[][] Q = new double[userAmount][userAmount];
 		for (int i = 0; i < userAmount - 1; i++) {

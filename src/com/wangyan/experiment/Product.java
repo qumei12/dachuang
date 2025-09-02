@@ -39,9 +39,9 @@ import javabean.Mashup;
 import model.LDAModel;
 
 public class Product {
-		// LDAËã·¨Ä£ĞÍ
+		// LDAç®—æ³•æ¨¡å‹
 		LDAModel ldaModel = null;
-		// ÎïÖÊÀ©É¢Ëã·¨½á¹û¾ØÕó
+		// ç‰©è´¨æ‰©æ•£ç®—æ³•ç»“æœçŸ©é˜µ
 		double[][] apiRelation = null;
 
 		int top_k = 3;
@@ -70,12 +70,12 @@ public class Product {
 				//System.out.println("LDAModel creation finished!");
 				mashupWordsBag = ldaModel.getMashupWordsBag();
 				apiWordsBag = ldaModel.getAPIWordsBag();
-				//System.out.println("´Ê´ü×ÓÉú³ÉÍê±Ï");
+				//System.out.println("è¯è¢‹å­ç”Ÿæˆå®Œæ¯•");
 			}
 
 			if (apiRelation == null) {
 				apiRelation = new GetRelation().getSimilarityByMD_REA();
-				//System.out.println("ÎïÖÊÀ©É¢½á¹ûÉú³É");
+				//System.out.println("ç‰©è´¨æ‰©æ•£ç»“æœç”Ÿæˆ");
 			}
 			
 			mashupIndex_ID = new HashMap<>();
@@ -150,11 +150,11 @@ public class Product {
 				IndexSearcher indexSearcher = new IndexSearcher(reader);
 				
 				QueryParser queryParser = new QueryParser(Version.LUCENE_35, "name", new StandardAnalyzer(Version.LUCENE_35));
-				Query query = queryParser.parse(str);//ËÑË÷ÄÚÈİ°üº¬strµÄÎÄµµ
+				Query query = queryParser.parse(str);//æœç´¢å†…å®¹åŒ…å«strçš„æ–‡æ¡£
 				
-				TopDocs topDocs = indexSearcher.search(query, 200);//ÏÔÊ¾10Ìõ
+				TopDocs topDocs = indexSearcher.search(query, 200);//æ˜¾ç¤º10æ¡
 				
-				ScoreDoc[] scoreDocs = topDocs.scoreDocs;//»ñÈ¡ËÑË÷½á¹ûµÄidÊı×é
+				ScoreDoc[] scoreDocs = topDocs.scoreDocs;//è·å–æœç´¢ç»“æœçš„idæ•°ç»„
 				
 				List<Mashup> mashupList = new ArrayList<>();
 				List<API> apiList = new ArrayList<>();
@@ -166,7 +166,7 @@ public class Product {
 					int id = Integer.parseInt(document.get("id"));
 					int interest = getInterest(id);
 					String string = mashupIndex_Name.get(id);
-					System.out.println(string + "ÊôÓÚĞËÈ¤" + interest);
+					System.out.println(string + "å±äºå…´è¶£" + interest);
 					interestSet.add(interest);
 				}
 				
@@ -178,7 +178,7 @@ public class Product {
 				DBSearch dbSearch = new DBSearch();
 				while (iterator.hasNext()) {
 					Integer interest = (Integer) iterator.next();
-					//ÍÆ¼ö¸ÃĞËÈ¤Ç°Top-k¸öMashup
+					//æ¨èè¯¥å…´è¶£å‰Top-kä¸ªMashup
 					List<Integer> list_m = mashupWordsBag.get(interest);
 					for(int i = 0; i < top_k; i++){
 						int mashupIndex = list_m.get(i);

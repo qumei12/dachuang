@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.sql.PreparedStatement;
 
 //import com.sun.org.apache.regexp.internal.recompile;
 
@@ -240,24 +241,29 @@ public class DBSearch {
 		return mashup;
 	}
 
-	// 在 DBSearch 类中添加以下方法
-	public String getMashupNameById(int mashupId) {
+	public Mashup getMashupByName(String name) {
 		Connection connection = DBHelper.getConnection();
-
-		Statement statement = null;
-		String mashupName = null;
+		PreparedStatement statement = null;
+		Mashup mashup = new Mashup();
 
 		try {
-			statement = connection.createStatement();
-			String sql = "SELECT C_NAME FROM tb_mashup WHERE N_ID = " + mashupId;
+			// 使用PreparedStatement防止SQL注入
+			String sql = "SELECT * FROM tb_mashup WHERE C_NAME = ?";
+			statement = connection.prepareStatement(sql);
+			statement.setString(1, name);
 
-			ResultSet rs = statement.executeQuery(sql);
+			ResultSet rs = statement.executeQuery();
 
 			if (rs.next()) {
-				mashupName = rs.getString("C_NAME");
+				mashup.setN_ID(rs.getInt(1));
+				mashup.setC_NAME(rs.getString(2));
+				mashup.setC_DESCRIPTION(rs.getString(3));
+				mashup.setC_URL(rs.getString(4));
+				mashup.setD_DATE(rs.getDate(5));
+			} else {
+				mashup.setN_ID(-1);
 			}
 
-			rs.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
@@ -273,6 +279,7 @@ public class DBSearch {
 			}
 		}
 
-		return mashupName;
+		return mashup.getN_ID() != -1 ? mashup : null;
 	}
+
 }

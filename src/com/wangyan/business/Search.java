@@ -15,7 +15,7 @@ public class Search {
 	
 	public static ArrayList<Mashup_json> searchMashupTable(int page){
 		
-		int count = 20;//Ã¿´Î·µ»Ø10¸öÊı¾İ
+		int count = 20;//æ¯æ¬¡è¿”å›10ä¸ªæ•°æ®
 		int startId = (page - 1) * 20;
 		//System.out.println(startId + "***");
 		DBSearch dbs = new DBSearch();

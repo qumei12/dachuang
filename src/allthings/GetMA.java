@@ -120,7 +120,7 @@ public class GetMA {
 			
 		}
 		
-		//FileOut.printMatrix(MA, "MA数组"); 
+		//FileOut.printMatrix(MA, "MA鏁扮粍"); 
 		
 		return MA;
 	}
@@ -155,7 +155,7 @@ public class GetMA {
 //				train[i][j] = MA[i][j];
 //			}
 //		}
-		//FileOut.printMatrix(train, "MAtrain数组");
+		//FileOut.printMatrix(train, "MAtrain鏁扮粍");
 		
 		return train;
 	}
@@ -169,7 +169,7 @@ public class GetMA {
 				test[i - row][j] = MA[i][j];
 			}
 		}
-		//FileOut.printMatrix(test, "MAtest数组");
+		//FileOut.printMatrix(test, "MAtest鏁扮粍");
 		
 		return test;
 	}

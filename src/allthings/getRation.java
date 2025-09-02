@@ -14,7 +14,7 @@ public class getRation {
 		GetMA getMA = new GetMA();
 		MA = getMA.getArrayMA();
 		getSimilarityByMD_REA(MA);
-		FileOut.printMatrix(similarity, "apiÏàËÆ¶È");
+		FileOut.printMatrix(similarity, "apiç›¸ä¼¼åº¦");
 	}
 	
 	public static getRation getInstance(){
@@ -44,7 +44,7 @@ public class getRation {
 		
 	}
 	
-	//// ÒÔÏÂÎªÎïÖÊÀ©É¢Ëã·¨»ñÈ¡ÏàËÆ¶È¾ØÕó
+	//// ä»¥ä¸‹ä¸ºç‰©è´¨æ‰©æ•£ç®—æ³•è·å–ç›¸ä¼¼åº¦çŸ©é˜µ
 	private double[][] getSimilarityByMD_REA(int[][] mashupApiMatrix) {
 
 		int mashupAmount = mashupApiMatrix.length;
@@ -91,7 +91,7 @@ public class getRation {
 				}
 			}
 		}
-		System.out.println("·Ç0×îĞ¡ÏàËÆ¶ÈÎª£º" + min);
+		System.out.println("é0æœ€å°ç›¸ä¼¼åº¦ä¸ºï¼š" + min);
 		return similarity;
 	}
 }

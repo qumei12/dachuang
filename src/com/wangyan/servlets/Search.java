@@ -1,6 +1,5 @@
 package com.wangyan.servlets;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,57 +15,50 @@ import com.wangyan.index.APIMap;
 import com.wangyan.index.IndexUtil;
 import com.wangyan.index.MashupMap;
 
-import filehelper.DeleteDirectory;
 import javabean.API;
 import javabean.Mashup;
 import model.LDAModel;
+import dbhelper.DBSearch;
 
 /**
  * Servlet implementation class Search
  */
 public class Search extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-       
-	
-	// LDAËã·¨Ä£ĞÍ
-	LDAModel ldaModel = null;
-	// ÎïÖÊÀ©É¢Ëã·¨½á¹û¾ØÕó
-	//double[][] apiRelation = null;
-	IndexUtil iu = null;
 
-	int top_k = 3;
-	int[][] recommand = null;
+	// LDAç®—æ³•æ¨¡å‹
+	LDAModel ldaModel = null;
+	IndexUtil iu = null;
 
 	Map<Integer, Integer> apiSequ = null;
 	Map<Integer, List<Integer>> mashupWordsBag = null;
 	Map<Integer, List<Integer>> apiWordsBag = null;
-	
-	
+
 	Map<Integer, Integer> mashupIndex_ID = null;
 	Map<Integer, String> mashupIndex_Name = null;
-	
+
 	Map<Integer, Integer> apiIndex_ID = null;
 	Map<Integer, String> apiIndex_Name = null;
 
-	// Ìí¼ÓÔ¤ÉètopKÅäÖÃ£¨ÓÃÓÚAPIÍÆ¼ö£©
+	// æ·»åŠ é¢„è®¾topKé…ç½®ï¼ˆç”¨äºAPIæ¨èï¼‰
 	private static final Map<String, Integer> MASHUP_TOPK_CONFIG = new HashMap<String, Integer>() {{
-		put("Facebook", 5);
+		put("Bing Maps Mashup Tilt Shift", 5);
 		put("Twitter", 3);
 		put("Google Maps", 7);
 		put("YouTube", 4);
 		put("Flickr", 6);
-		// ¿ÉÒÔ¼ÌĞøÌí¼Ó¸ü¶àÔ¤Éè
+		// å¯ä»¥ç»§ç»­æ·»åŠ æ›´å¤šé¢„è®¾
 	}};
 
-	// Ä¬ÈÏtopKÖµ
+	// é»˜è®¤topKå€¼
 	private static final int DEFAULT_TOPK = 3;
 
 	/**
-     * @see HttpServlet#HttpServlet()
-     */
-    public Search() {
-        super();
-        if (ldaModel == null) {
+	 * @see HttpServlet#HttpServlet()
+	 */
+	public Search() {
+		super();
+		if (ldaModel == null) {
 			ldaModel = new LDAModel();
 			//System.out.println("1 Initialize the model ...");
 			ldaModel.initializeLDAModel();
@@ -75,46 +67,71 @@ public class Search extends HttpServlet {
 			//System.out.println("LDAModel creation finished!");
 			mashupWordsBag = ldaModel.getMashupWordsBag();
 			apiWordsBag = ldaModel.getAPIWordsBag();
-			//System.out.println("´Ê´ü×ÓÉú³ÉÍê±Ï");
+			//System.out.println("è¯è¢‹å­ç”Ÿæˆå®Œæ¯•");
 		}
-        
-        mashupIndex_ID = new HashMap<>();
+
+		mashupIndex_ID = new HashMap<>();
 		mashupIndex_Name = new HashMap<>();
 		new MashupMap().setMap(mashupIndex_ID, mashupIndex_Name);
-		
+
 		apiIndex_ID = new HashMap<>();
 		apiIndex_Name = new HashMap<>();
 		new APIMap().setMap(apiIndex_ID, apiIndex_Name);
-		
-		//DeleteDirectory.deleteDir(new File("./index"));
+
 		iu = new IndexUtil();
 		iu.createIndex(mashupIndex_Name);
-		
-    }
+	}
 
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		//response.getWriter().append("Served at: ").append(request.getContextPath());
+		String mashupName = request.getParameter("search");
+		System.out.println("ç²¾ç¡®æœç´¢mashupåç§°: " + mashupName);
 
-		String keyword = request.getParameter("search");
-		System.out.println("ËÑË÷¹Ø¼ü´Ê: " + keyword);
-		List<Mashup> mashupList = new ArrayList<>();
-		List<API> apiList = new ArrayList<>();
-		// ¸ù¾İËÑË÷¹Ø¼ü´ÊÈ·¶¨Ê¹ÓÃµÄtopKÖµ
-		int dynamicTopK = determineTopKForSearch(keyword);
-		System.out.println("Ê¹ÓÃTopKÖµ: " + dynamicTopK);
+		try {
+			// æ£€æŸ¥å‚æ•°
+			if (mashupName == null || mashupName.trim().isEmpty()) {
+				request.setAttribute("error", "è¯·è¾“å…¥mashupåç§°");
+				request.getRequestDispatcher("error.jsp").forward(request, response);
+				return;
+			}
 
-		iu.query(keyword, dynamicTopK, mashupIndex_Name, mashupIndex_ID, apiIndex_Name, apiIndex_ID, mashupWordsBag, apiWordsBag, mashupList, apiList);
-	
-		request.setAttribute("mashupList", mashupList);
-		request.setAttribute("apiList", apiList);
-		if(apiList.size() == 0 || mashupList.size() == 0){
-			request.getRequestDispatcher("notFind.jsp").forward(request, response);
-		} else {
-			request.getRequestDispatcher("searchResult.jsp").forward(request, response);
+			// é¦–å…ˆéªŒè¯mashupæ˜¯å¦å­˜åœ¨ï¼ˆç²¾ç¡®åŒ¹é…ï¼‰
+			DBSearch dbSearch = new DBSearch();
+			Mashup mashup = dbSearch.getMashupByName(mashupName.trim());
+
+			if (mashup == null || mashup.getN_ID() <= 0) {
+				request.setAttribute("error", "æœªæ‰¾åˆ°åç§°ä¸º '" + mashupName + "' çš„mashup");
+				request.getRequestDispatcher("notFind.jsp").forward(request, response);
+				return;
+			}
+
+			// ç¡®å®šä½¿ç”¨çš„topKå€¼
+			int dynamicTopK = determineTopKForSearch(mashupName);
+			System.out.println("ä½¿ç”¨TopKå€¼: " + dynamicTopK);
+
+			// ä½¿ç”¨LDAæ¨¡å‹è¿›è¡Œæ¨è
+			List<API> apiList = new ArrayList<>();
+
+			// åŸºäºæ‰¾åˆ°çš„mashupè¿›è¡ŒLDAæ¨è
+			iu.query(mashupName, dynamicTopK, mashupIndex_Name, mashupIndex_ID,
+					apiIndex_Name, apiIndex_ID, mashupWordsBag, apiWordsBag, apiList);
+
+			// è®¾ç½®è¯·æ±‚å±æ€§
+			request.setAttribute("mashup", mashup);  // ä¼ é€’æ‰¾åˆ°çš„mashupå¯¹è±¡
+			request.setAttribute("apiList", apiList);
+
+			if(apiList.size() == 0){
+				request.getRequestDispatcher("notFind.jsp").forward(request, response);
+			} else {
+				request.getRequestDispatcher("searchResult.jsp").forward(request, response);
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "ç³»ç»Ÿé”™è¯¯: " + e.getMessage());
+			request.getRequestDispatcher("error.jsp").forward(request, response);
 		}
 	}
 
@@ -122,24 +139,24 @@ public class Search extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
 		doGet(request, response);
 	}
-	// ¸ù¾İËÑË÷¹Ø¼ü´ÊÈ·¶¨topKÖµ
-	private int determineTopKForSearch(String keyword) {
-		if (keyword == null || keyword.trim().isEmpty()) {
+
+	// æ ¹æ®mashupåç§°ç¡®å®štopKå€¼
+	private int determineTopKForSearch(String mashupName) {
+		if (mashupName == null || mashupName.trim().isEmpty()) {
 			return DEFAULT_TOPK;
 		}
 
-		// ¸ù¾İ¹Ø¼ü´ÊÆ¥ÅäÔ¤ÉèµÄtopKÖµ
+		// æ ¹æ®mashupåç§°åŒ¹é…é¢„è®¾çš„topKå€¼ï¼ˆç²¾ç¡®åŒ¹é…ï¼‰
 		for (Map.Entry<String, Integer> entry : MASHUP_TOPK_CONFIG.entrySet()) {
-			if (keyword.toLowerCase().contains(entry.getKey().toLowerCase())) {
-				System.out.println("Æ¥Åäµ½Ô¤ÉèMashup: " + entry.getKey() + " -> TopK: " + entry.getValue());
+			if (mashupName.equalsIgnoreCase(entry.getKey())) {
+				System.out.println("åŒ¹é…åˆ°é¢„è®¾Mashup: " + entry.getKey() + " -> TopK: " + entry.getValue());
 				return entry.getValue();
 			}
 		}
 
-		// Èç¹ûÃ»ÓĞÆ¥Åäµ½Ô¤ÉèÖµ£¬·µ»ØÄ¬ÈÏÖµ
+		// å¦‚æœæ²¡æœ‰åŒ¹é…åˆ°é¢„è®¾å€¼ï¼Œè¿”å›é»˜è®¤å€¼
 		return DEFAULT_TOPK;
 	}
 }

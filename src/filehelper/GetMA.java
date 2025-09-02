@@ -59,16 +59,16 @@ public class GetMA {
 				mashup.setC_NAME(rs.getString(2));
 				mashup.setC_DESCRIPTION(rs.getString(3));
 				mashup.setC_URL(rs.getString(4));
-				String dateStr = rs.getString(5);  // ¸ÄÎª getString ¶ÁÈ¡ÈÕÆÚ×Ö¶Î
+				String dateStr = rs.getString(5);  // æ”¹ä¸º getString è¯»å–æ—¥æœŸå­—æ®µ
 				if (dateStr != null && !dateStr.isEmpty()) {
 					try {
-						// Ê¹ÓÃ SimpleDateFormat ½âÎöÈÕÆÚ¸ñÊ½
+						// ä½¿ç”¨ SimpleDateFormat è§£ææ—¥æœŸæ ¼å¼
 						SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd");
 						Date utilDate = sdf.parse(dateStr);
 						mashup.setD_DATE(new java.sql.Date(utilDate.getTime()));
 					} catch (ParseException e) {
-						System.err.println("ÈÕÆÚ½âÎöÊ§°Ü£º" + dateStr);
-						mashup.setD_DATE(null);  // »òÕßÉèÖÃÄ¬ÈÏÖµ
+						System.err.println("æ—¥æœŸè§£æå¤±è´¥ï¼š" + dateStr);
+						mashup.setD_DATE(null);  // æˆ–è€…è®¾ç½®é»˜è®¤å€¼
 					}
 				} else {
 					mashup.setD_DATE(null);
@@ -134,7 +134,7 @@ public class GetMA {
 			
 		}
 		
-		//FileOut.printMatrix(MA, "MAÊı×é"); 
+		//FileOut.printMatrix(MA, "MAæ•°ç»„"); 
 		
 		return MA;
 	}
@@ -169,7 +169,7 @@ public class GetMA {
 //				train[i][j] = MA[i][j];
 //			}
 //		}
-		//FileOut.printMatrix(train, "MAtrainÊı×é");
+		//FileOut.printMatrix(train, "MAtrainæ•°ç»„");
 		
 		return train;
 	}
@@ -183,7 +183,7 @@ public class GetMA {
 				test[i - row][j] = MA[i][j];
 			}
 		}
-		//FileOut.printMatrix(test, "MAtestÊı×é");
+		//FileOut.printMatrix(test, "MAtestæ•°ç»„");
 		
 		return test;
 	}

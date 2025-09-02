@@ -26,7 +26,7 @@ public class GetRecommand {
 			a[i] = relation[startApiId][i];
 		}
 
-		//µÚÒ»²½µÄÍÆ¼ö
+		//ç¬¬ä¸€æ­¥çš„æ¨è
 		List<Integer> result = this.SinglePathSelectSwap(startApiId, a, topk);
 
 		for(int i = 0; i < result.size(); i++){
@@ -37,7 +37,7 @@ public class GetRecommand {
 				simi[j] = relation[start][j];
 			}
 			
-			//µÚ¶ş²½µÄÍÆ¼ö
+			//ç¬¬äºŒæ­¥çš„æ¨è
 			List<Integer> result_2 = this.SinglePathSelectSwap(start, simi, topk);
 			
 			for(int k = 0; k < result_2.size(); k++){
@@ -47,7 +47,7 @@ public class GetRecommand {
 				for(int m = 0; m < simi_2.length; m++){
 					simi_2[m] = relation[start_2][m];
 				}
-				//µÚÈı²½µÄÍÆ¼ö
+				//ç¬¬ä¸‰æ­¥çš„æ¨è
 				List<Integer> result_3 = this.SinglePathSelectSwap(start_2, simi_2, topk);
 				for(int n = 0; n < result_3.size(); n++){
 					recommand = new ArrayList<Integer>();
@@ -66,7 +66,7 @@ public class GetRecommand {
 	}
 
 	/**
-	 * ÍÆ¼ö¹ı³Ì
+	 * æ¨èè¿‡ç¨‹
 	 * @param target
 	 * @param a
 	 * @param topk
@@ -84,12 +84,12 @@ public class GetRecommand {
 
 		for (int i = 0; i < l; i++) {
 			int max = i;//
-			/** ²éÕÒµÚ i´óµÄÊı£¬Ö±µ½¼ÇÏÂµÚ i´óÊıµÄÎ»ÖÃ ***/
+			/** æŸ¥æ‰¾ç¬¬ iå¤§çš„æ•°ï¼Œç›´åˆ°è®°ä¸‹ç¬¬ iå¤§æ•°çš„ä½ç½® ***/
 			for (int j = i + 1; j < a.length; j++) {
 				if (a[max] < a[j])
-					max = j; // ¼ÇÏÂ½Ï´óÊıÎ»ÖÃ£¬ÔÙ´Î±È½Ï£¬Ö±µ½×î´ó
+					max = j; // è®°ä¸‹è¾ƒå¤§æ•°ä½ç½®ï¼Œå†æ¬¡æ¯”è¾ƒï¼Œç›´åˆ°æœ€å¤§
 			}
-			/*** Èç¹ûµÚ i´óÊıµÄÎ»ÖÃ²»ÔÚ i,Ôò½»»» ****/
+			/*** å¦‚æœç¬¬ iå¤§æ•°çš„ä½ç½®ä¸åœ¨ i,åˆ™äº¤æ¢ ****/
 			if (i != max) {
 				double temp1 = a[i];
 				a[i] = a[max];
@@ -101,7 +101,7 @@ public class GetRecommand {
 			}
 		}
 
-		// Êä³ötopkµ½arraylistÖĞ
+		// è¾“å‡ºtopkåˆ°arraylistä¸­
 		int i = 0;
 		for (int j = 0; j < l; j++) {
 			if (i < topk && index[j] != target) {
@@ -112,11 +112,11 @@ public class GetRecommand {
 		return list;
 	}
 	
-	//ÏÂ±ßÊÇ¶à²½ÍÆ¼ö
+	//ä¸‹è¾¹æ˜¯å¤šæ­¥æ¨è
 	public DefaultTreeModel MultiPathRecommend(int[][] testMA,double[][] Similarity,int l,int startApiID,int topk){
   		
   		
-  		//javaÖĞÊı×é´«½øº¯ÊıµÄ·½Ê½ÎªµØÖ·´«µİ£¬Òò´ËÒª¶¨ÒåÒ»¸ödoubleĞÍÊı×éÓÃÓÚ´æ·Å´«ÈëµÄÖµ£¬·ÀÖ¹similarity±»ĞŞ¸Ä
+  		//javaä¸­æ•°ç»„ä¼ è¿›å‡½æ•°çš„æ–¹å¼ä¸ºåœ°å€ä¼ é€’ï¼Œå› æ­¤è¦å®šä¹‰ä¸€ä¸ªdoubleå‹æ•°ç»„ç”¨äºå­˜æ”¾ä¼ å…¥çš„å€¼ï¼Œé˜²æ­¢similarityè¢«ä¿®æ”¹
   		double []a=new double[Similarity[0].length];
   		double[][]c=new double[Similarity.length][Similarity[0].length];
   		
@@ -124,12 +124,12 @@ public class GetRecommand {
   			for(int j=0;j<Similarity[0].length;j++)
   				c[i][j]=Similarity[i][j];
 
-  		//½¨Á¢Êä³öµÄAPIÍÆ¼öÊ÷
+  		//å»ºç«‹è¾“å‡ºçš„APIæ¨èæ ‘
   		 DefaultMutableTreeNode root = new DefaultMutableTreeNode (startApiID);
   		 
-  		//´Óroot¿ªÊ¼½øĞĞµÚÒ»²ãÍÆ¼ö
+  		//ä»rootå¼€å§‹è¿›è¡Œç¬¬ä¸€å±‚æ¨è
   		  List<Integer> result=new ArrayList<Integer>();
- 		  //½«Similarity[startApiID]µÄÖµ¸³¸øÊı×éa
+ 		  //å°†Similarity[startApiID]çš„å€¼èµ‹ç»™æ•°ç»„a
  		  for(int i=0;i<a.length;i++)
  			  a[i]=Similarity[startApiID][i];
 		  result = this.SinglePathSelectSwap(startApiID,a, topk);
@@ -138,7 +138,7 @@ public class GetRecommand {
 				root.add(childnode);
 			}
   		 
-         //ÍÆ¼öÊ÷µÄ²ãÊı=ÍÆ¼öÂ·¾¶³¤¶Èl£¬´ÓµÚ¶ş²ã¿ªÊ¼ÅĞ¶ÏÊÇ·ñĞèÒª¼ÌĞøÍÆ¼ö	
+         //æ¨èæ ‘çš„å±‚æ•°=æ¨èè·¯å¾„é•¿åº¦lï¼Œä»ç¬¬äºŒå±‚å¼€å§‹åˆ¤æ–­æ˜¯å¦éœ€è¦ç»§ç»­æ¨è	
   		 while(root.getDepth()<l){
   			//System.out.println("depth"+root.getDepth());
   			
@@ -150,7 +150,7 @@ public class GetRecommand {
   	            if (child.isLeaf()){
   	            	ArrayList<Integer> target=new ArrayList<Integer>();
   	            	
-  	            	//»ñµÃÒÑ¾­ÍÆ¼ö¹ıµÄ½á¹û´æÈëArrayList targetÖĞ
+  	            	//è·å¾—å·²ç»æ¨èè¿‡çš„ç»“æœå­˜å…¥ArrayList targetä¸­
   	            	while(child2.isRoot()==false){
   	            		target.add(Integer.parseInt(child2.toString()));
   	            	    child2=(DefaultMutableTreeNode)child2.getParent();
@@ -158,7 +158,7 @@ public class GetRecommand {
   	            	target.add(Integer.parseInt(root.toString()));
   	            	
   	            	ArrayList<Integer> childrenresult=new ArrayList<Integer>();
-  	                //½«Similarity[index]µÄÖµ¸³¸øÊı×éa
+  	                //å°†Similarity[index]çš„å€¼èµ‹ç»™æ•°ç»„a
 
   	            	childrenresult=this.MultiPathSelectSwap(target,c, topk);
   	            	//System.out.println(childrenresult.size());
@@ -182,9 +182,9 @@ public class GetRecommand {
 
 	private ArrayList<Integer> MultiPathSelectSwap(ArrayList<Integer> target,
 			double[][] c, int topk) {
-		//System.out.println("¶à²½Â·¾¶ÍÆ¼ö");
+		//System.out.println("å¤šæ­¥è·¯å¾„æ¨è");
 
-		double[] a = new double[c[0].length]; // double[][]cÎª¸´ÖÆµÄsimilarity[][],×¢Òâ²»ÄÜ½«similarityÖ±½ÓÊ¹ÓÃ£¬·ñÔò»á¸Ä±äsimilarityÖµ
+		double[] a = new double[c[0].length]; // double[][]cä¸ºå¤åˆ¶çš„similarity[][],æ³¨æ„ä¸èƒ½å°†similarityç›´æ¥ä½¿ç”¨ï¼Œå¦åˆ™ä¼šæ”¹å˜similarityå€¼
 
 		double[][] init = { { 0, 0, 0, 0, 0, 0, 0, 0 },
 				{ 0, 1, 0, 0, 0, 0, 0, 0 }, { 0, 0.3, 0.7, 0, 0, 0, 0, 0 },
@@ -195,25 +195,25 @@ public class GetRecommand {
 				{ 0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.2, 0.3 } };
 		double[] p = new double[init[0].length];
 
-		// ¶ÔP½øĞĞ¸³Öµ£¬p[i]±íÊ¾µÚi²½ÍÆ¼ö´ú±íµÄÈ¨ÖØ
-		int length = target.size(); // ¸ù¾İtargetµÄ³¤¶È»ñµÃÒÑ¾­ÍÆ¼öµÄÂ·¾¶³¤¶È
+		// å¯¹Pè¿›è¡Œèµ‹å€¼ï¼Œp[i]è¡¨ç¤ºç¬¬iæ­¥æ¨èä»£è¡¨çš„æƒé‡
+		int length = target.size(); // æ ¹æ®targetçš„é•¿åº¦è·å¾—å·²ç»æ¨èçš„è·¯å¾„é•¿åº¦
 
 		for (int i = 0; i < init[0].length; i++)
 			p[i] = init[length][i];
 
-		// »ñµÃtargetÖĞµÄÄÚÈİ£¬¸³Öµ¸øÊı×éaim,×¢ÒâtargetÖĞµÄ´æ´¢Ë³ĞòÊÇÓÉ×Ó½Úµãµ½¸¸½Úµã£¬aimÖĞÓ¦Îª¸¸½Úµãµ½×Ó½Úµã
+		// è·å¾—targetä¸­çš„å†…å®¹ï¼Œèµ‹å€¼ç»™æ•°ç»„aim,æ³¨æ„targetä¸­çš„å­˜å‚¨é¡ºåºæ˜¯ç”±å­èŠ‚ç‚¹åˆ°çˆ¶èŠ‚ç‚¹ï¼Œaimä¸­åº”ä¸ºçˆ¶èŠ‚ç‚¹åˆ°å­èŠ‚ç‚¹
 		int[] aim = new int[target.size()];
 		for (int i = 0; i < aim.length; i++)
 			aim[i] = target.get(i);
 
-		// ¼ÆËã´ıÍÆ¼öapiÓëÒÑÍÆ¼ö³öµÄapiÖ®¼äµÄ×ÛºÏsimilarity
+		// è®¡ç®—å¾…æ¨èapiä¸å·²æ¨èå‡ºçš„apiä¹‹é—´çš„ç»¼åˆsimilarity
 		for (int i = 0; i < a.length; i++) {
 			for (int j = 1; j < aim.length; j++)
 				a[i] += c[aim[j]][i] * p[j];
 		}
 
 		int index[] = new int[a.length];
-		// ¶ÔindexÊı×é¸³³õÖµ
+		// å¯¹indexæ•°ç»„èµ‹åˆå€¼
 		for (int i = 0; i < a.length; i++)
 			index[i] = i;
 
@@ -221,12 +221,12 @@ public class GetRecommand {
 
 		for (int i = 0; i < a.length; i++) {
 			int max = i;//
-			/** ²éÕÒµÚ i´óµÄÊı£¬Ö±µ½¼ÇÏÂµÚ i´óÊıµÄÎ»ÖÃ ***/
+			/** æŸ¥æ‰¾ç¬¬ iå¤§çš„æ•°ï¼Œç›´åˆ°è®°ä¸‹ç¬¬ iå¤§æ•°çš„ä½ç½® ***/
 			for (int j = i + 1; j < a.length; j++) {
 				if (a[max] < a[j])
-					max = j; // ¼ÇÏÂ½Ï´óÊıÎ»ÖÃ£¬ÔÙ´Î±È½Ï£¬Ö±µ½×î´ó
+					max = j; // è®°ä¸‹è¾ƒå¤§æ•°ä½ç½®ï¼Œå†æ¬¡æ¯”è¾ƒï¼Œç›´åˆ°æœ€å¤§
 			}
-			/*** Èç¹ûµÚ i´óÊıµÄÎ»ÖÃ²»ÔÚ i,Ôò½»»» ****/
+			/*** å¦‚æœç¬¬ iå¤§æ•°çš„ä½ç½®ä¸åœ¨ i,åˆ™äº¤æ¢ ****/
 			if (i != max) {
 				double temp1 = a[i];
 				a[i] = a[max];
@@ -238,14 +238,14 @@ public class GetRecommand {
 			}
 		}
 
-		// Êä³ötopkµ½arraylistÖĞ
+		// è¾“å‡ºtopkåˆ°arraylistä¸­
 		b.add(100);
 		int i = 0;
 		for (int j = 1; j < a.length; j++) {
 			boolean same = false;
 			/*
 			 * for(int k=0;k<target.size();k++){
-			 * //×¢Òâ£ºÔÚ¶à²½Â·¾¶ÍÆ¼öÖĞ£¬ËùÓĞ±»ÍÆ¼ö¹ıµÄapi²»ÄÜÔÙ´Î±»ÍÆ¼ö£¬¼´ArrayList targetÖĞ³öÏÖ¹ıµÄapi²»ÄÜ±»¼Óµ½aÖĞ
+			 * //æ³¨æ„ï¼šåœ¨å¤šæ­¥è·¯å¾„æ¨èä¸­ï¼Œæ‰€æœ‰è¢«æ¨èè¿‡çš„apiä¸èƒ½å†æ¬¡è¢«æ¨èï¼Œå³ArrayList targetä¸­å‡ºç°è¿‡çš„apiä¸èƒ½è¢«åŠ åˆ°aä¸­
 			 * if(index[j]==target.get(k)) same=true; }
 			 */
 

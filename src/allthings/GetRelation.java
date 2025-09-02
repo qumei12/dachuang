@@ -23,7 +23,7 @@ public class GetRelation {
 	private int[][] getArrayUNION(int[][] MA) {
 
 		int[][] UNION = new int[ApiAmount][ApiAmount];
-		// ¼ÆËãUNIONÊý×é
+		// è®¡ç®—UNIONæ•°ç»„
 		for (int i = 0; i < ApiAmount; i++)
 			for (int j = 0; j < MashupAmount; j++)
 				UNION[i][i] += MA[j][i];
@@ -40,7 +40,7 @@ public class GetRelation {
 	private int[][] getArrayCOMMON(int[][] MA) {
 
 		int[][] COMMON = new int[ApiAmount][ApiAmount];
-		// ¼ÆËãCOMMONÊý×é
+		// è®¡ç®—COMMONæ•°ç»„
 		for (int i = 0; i < ApiAmount; i++)
 			for (int j = 0; j < MashupAmount; j++)
 				COMMON[i][i] += MA[j][i];
@@ -63,9 +63,9 @@ public class GetRelation {
 		return PRO1;
 	}
 
-	// ÒÔÉÏÎªJaccardËã·¨»ñÈ¡ÏàËÆ¶È¾ØÕó
+	// ä»¥ä¸Šä¸ºJaccardç®—æ³•èŽ·å–ç›¸ä¼¼åº¦çŸ©é˜µ
 
-	// ÒÔÏÂÎªÎïÖÊÀ©É¢Ëã·¨»ñÈ¡ÏàËÆ¶È¾ØÕó
+	// ä»¥ä¸‹ä¸ºç‰©è´¨æ‰©æ•£ç®—æ³•èŽ·å–ç›¸ä¼¼åº¦çŸ©é˜µ
 
 	public double[][] getSimilarityByMD_REA(int[][] trainMA) {
 

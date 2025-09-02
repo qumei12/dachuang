@@ -7,9 +7,9 @@ public class Test {
 	public static void main(String[] args) {
 		Connection conn = DBHelper.getConnection();
 		if (conn != null) {
-			System.out.println("? 数据库连接成功！");
+			System.out.println("? 鏁版嵁搴撹繛鎺ユ垚鍔燂紒");
 		} else {
-			System.out.println("? 数据库连接失败！");
+			System.out.println("? 鏁版嵁搴撹繛鎺ュけ璐ワ紒");
 		}
 	}
 }

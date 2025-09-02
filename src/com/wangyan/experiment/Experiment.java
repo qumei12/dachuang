@@ -16,9 +16,9 @@ import allthings.GetRelation;
 import model.LDAModel;
 
 public class Experiment {
-	// LDAËã·¨Ä£ĞÍ
+	// LDAç®—æ³•æ¨¡å‹
 	LDAModel ldaModel = null;
-	// ÎïÖÊÀ©É¢Ëã·¨½á¹û¾ØÕó
+	// ç‰©è´¨æ‰©æ•£ç®—æ³•ç»“æœçŸ©é˜µ
 	double[][] apiRelation = null;
 
 	int top_k = 10;
@@ -47,12 +47,12 @@ public class Experiment {
 			//System.out.println("LDAModel creation finished!");
 			mashupWordsBag = ldaModel.getMashupWordsBag();
 			apiWordsBag = ldaModel.getAPIWordsBag();
-			//System.out.println("´Ê´ü×ÓÉú³ÉÍê±Ï");
+			//System.out.println("è¯è¢‹å­ç”Ÿæˆå®Œæ¯•");
 		}
 
 		if (apiRelation == null) {
 			apiRelation = new GetRelation().getSimilarityByMD_REA();
-			System.out.println("ÎïÖÊÀ©É¢½á¹ûÉú³É");
+			System.out.println("ç‰©è´¨æ‰©æ•£ç»“æœç”Ÿæˆ");
 		}
 
 	}
@@ -89,7 +89,7 @@ public class Experiment {
 			}
 		}
 
-		System.out.println("¼°¸ñÂÊ:" + count_jige * 1.0 / count);
+		System.out.println("åŠæ ¼ç‡:" + count_jige * 1.0 / count);
 	}
 
 	@Test
@@ -128,14 +128,14 @@ public class Experiment {
 			
 		}
 		long end = System.currentTimeMillis();
-		//½øĞĞÖ¸±ê²âÊÔ
+		//è¿›è¡ŒæŒ‡æ ‡æµ‹è¯•
 		fiveStageAccuracy(recommandMap);
 		fiveStageRecallRate(recommandMap);
 		fiveStageHamming(recommandMap);
 		long time = (end - start);
 		System.out.println(time);
 		
-		//SimpleDateFormat formatter = new SimpleDateFormat("mm·Öss.sssssssssÃë"); 
+		//SimpleDateFormat formatter = new SimpleDateFormat("mmåˆ†ss.sssssssssç§’"); 
 		//String formatDate = formatter.format(new Date());
 		//System.out.println(formatDate);
 	}
@@ -182,7 +182,7 @@ public class Experiment {
 
 		long start = System.currentTimeMillis();
 		
-		//SimpleDateFormat formatter = new SimpleDateFormat("hhµãmm·Öss.sssssssssÃë"); 
+		//SimpleDateFormat formatter = new SimpleDateFormat("hhç‚¹mmåˆ†ss.sssssssssç§’"); 
 		//String formatDate = formatter.format(new Date());
 		//System.out.println(formatDate);
 		
@@ -208,20 +208,20 @@ public class Experiment {
 		}
 		long end = System.currentTimeMillis();
 		
-		//Ö¸±ê²âËã
+		//æŒ‡æ ‡æµ‹ç®—
 		threeStageAccuracy(recommandMap);
 		threeStageRecallRate(recommandMap);
 		threeStageHamming(recommandMap);
 		long time = (end - start);
 		System.out.println(time);
-		//SimpleDateFormat formatter2 = new SimpleDateFormat("hhµãmm·Öss.sssssssssÃë"); 
+		//SimpleDateFormat formatter2 = new SimpleDateFormat("hhç‚¹mmåˆ†ss.sssssssssç§’"); 
 		//String formatDate2 = formatter2.format(new Date());
 		//System.out.println(formatDate2);
 	}
 	
 	
 	/**
-	 * Èı²½ÍÆ¼ö¾«È·¶È¼ÆËã
+	 * ä¸‰æ­¥æ¨èç²¾ç¡®åº¦è®¡ç®—
 	 * @param map
 	 */
 	private void threeStageAccuracy(Map<Integer, List<Integer>> map){
@@ -259,7 +259,7 @@ public class Experiment {
 	}
 
 	/**
-	 * Îå²ãÍÆ¼ö¾«È·¶È²âÁ¿
+	 * äº”å±‚æ¨èç²¾ç¡®åº¦æµ‹é‡
 	 * @param map
 	 */
 	private void fiveStageAccuracy(Map<Integer, List<List<Integer>>> map) {
@@ -303,7 +303,7 @@ public class Experiment {
 	}
 	
 	/**
-	 * Èı²ãÍÆ¼öµÄÕÙ»ØÂÊ¼ÆËã
+	 * ä¸‰å±‚æ¨èçš„å¬å›ç‡è®¡ç®—
 	 * @param map
 	 */
 	private void threeStageRecallRate(Map<Integer, List<Integer>> map){
@@ -346,7 +346,7 @@ public class Experiment {
 	}
 	
 	/**
-	 * Îå²ãÍÆ¼öµÄÕÙ»ØÂÊ¼ÆËã
+	 * äº”å±‚æ¨èçš„å¬å›ç‡è®¡ç®—
 	 * @param map
 	 */
 	private void fiveStageRecallRate(Map<Integer, List<List<Integer>>> map){
@@ -392,7 +392,7 @@ public class Experiment {
 	}
 	
 	/**
-	 * Îå²ãÍÆ¼öº£Ã÷¾àÀë²âÁ¿
+	 * äº”å±‚æ¨èæµ·æ˜è·ç¦»æµ‹é‡
 	 * @param map
 	 */
 	private void fiveStageHamming(Map<Integer, List<List<Integer>>> map){

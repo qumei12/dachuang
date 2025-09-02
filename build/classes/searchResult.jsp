@@ -1,247 +1,106 @@
-<%@page import="javabean.Mashup"%>
-<%@ page language="java" contentType="text/html; charset=utf-8"
-	pageEncoding="utf-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@page import="java.util.ArrayList"%>
 <%@page import="javabean.API"%>
+<%@page import="javabean.Mashup"%>
 <!DOCTYPE html>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>服务推荐原型系统</title>
-<style type="text/css">
-body {
-	font-family: Georgia, "Times New Roman", Times, serif;
-	font-size: big;
-	margin: 5px;
-}
-
-.header {
-	margin: 10px;
-	height: 100px;
-	text-align: center;
-}
-
-.left {
-	float: left;
-	width: 200px;
-	height: 100%;
-}
-
-.right {
-	float: right;
-	width: 400px;
-	height: 100%;
-}
-
-.main {
-	margin-left: 200px;
-	margin-right: 200px;
-}
-
-#nav {
-	height: 30px;
-	width: 100%;
-	background-color: gray;
-}
-
-#nav ul {
-	margin: 0 0 0 30px;
-	padding: 0px;
-	font-size: 12px;
-	color: #FFF;
-	line-height: 30px;
-	whitewhite-space: nowrap;
-}
-
-#nav li {
-	display: inline;
-	float: left;
-	user-select:none;
-}
-
-#nav li a {
-	text-decoration: none;
-	font-family: Arial, Helvetica, sans-serif;
-	padding: 7px 10px;
-	font-size: big;
-	color: #FFF;
-	
-}
-
-#nav li a:hover {
-	color: black;
-	background-color: white;
-}
-
-.footer {
-	margin: 10px;
-	padding: 15px;
-	text-align: center;
-}
-
-#title {
-	padding-top: 1px;
-	color: black;
-	font-size: 180%;
-}
-
-#resultTable{
-	text-align: center;
-}
-
-table {
-	border: thin solid black;
-	border-collapse: collapse;
-	background-color: white;
-}
-
-td, th {
-	border: thin dotted black;
-	padding: 5px;
-}
-
-th.url, td.url {
-	width: 80px;
-}
-
-.foot {
-	width: 100%;
-	position: relative;
-	bottom: 100px;
-	margin-top:150px;
-}
-
-.foot>.link {
-	text-align: center;
-	margin-bottom: 10px;
-}
-
-.foot>.link>a {
-	font-size: 12px;
-	font-family: "宋体";
-	text-decoration: underline;
-}
-
-.copyright {
-	text-align: center;
-}
-
-p, p>a {
-	font-size: 12px;
-	font-family: "宋体";
-	color: #666;
-}
-</style>
-<script type="text/javascript" src='jquery-1.12.2.js'></script>
-<script type="text/javascript">
-	function showTable(type) {
-		if (type == 'Mashup') {
-			$('#apiTable').css('display', 'none');
-			$('#mashupTable').css('display', 'block');
-
-			//$('#mashup').css('color','black');
-			//$('#mashup').css('background-color','white');
-
-			//$('#api').css('color','none');
-			//$('#api').css('background-color','gray');
-
-		} else if (type == 'API') {
-			$('#apiTable').css('display', 'block');
-			$('#mashupTable').css('display', 'none');
-
-			//$('#api').css('color','black');
-			//$('#api').css('background-color','white');
-
-			//$('#mashup').css('color','none');
-			//$('#mashup').css('background-color','gray');
+	<meta charset="UTF-8">
+	<title>Mashup API推荐结果</title>
+	<style type="text/css">
+		body {
+			font-family: Arial, sans-serif;
+			margin: 20px;
 		}
-	}
-</script>
+		.container {
+			max-width: 1000px;
+			margin: 0 auto;
+		}
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			margin: 20px 0;
+		}
+		th, td {
+			border: 1px solid #ddd;
+			padding: 12px;
+			text-align: left;
+		}
+		th {
+			background-color: #f2f2f2;
+		}
+		tr:nth-child(even) {
+			background-color: #f9f9f9;
+		}
+		.mashup-info {
+			background-color: #e7f3ff;
+			padding: 15px;
+			border-radius: 5px;
+			margin-bottom: 20px;
+		}
+		.back-link {
+			margin-top: 20px;
+		}
+		a {
+			color: #4CAF50;
+			text-decoration: none;
+		}
+		a:hover {
+			text-decoration: underline;
+		}
+	</style>
 </head>
 <body>
-	<header class='header'>
-		<div id='title'>
-			<h1>服务推荐原型系统</h1>
-		</div>
-	</header>
-	<div class='content'>
-		<div class='left'>
-			<p></p>
-		</div>
-		<div class='right'>
-			<p></p>
-		</div>
+<div class="container">
+	<h2>Mashup API推荐结果</h2>
 
-		
-		<div class='main'>
-			<div id='nav'>
-			<ul>
-				<li id='mashup' onclick='showTable("Mashup");'><a>Mashup</a></li>
-				<li id='api' onclick='showTable("API");'><a>API</a></li>
-			</ul>
-			</div>
-			<div id='resultTable'>
-				<div><p>&nbsp</p></div>
-				
-				<div id='mashupTable' style="display:block">
-				<div><h2>Mashup推荐结果</h2></div>
-					<table>
-						<tr>
-							<th>Mashup名称</th>
-							<th>Mashup详情</th>
-							<th>Mashup URL</th>
-						</tr>
-						<%
-							Object obj_m = request.getAttribute("mashupList");
-							ArrayList<Mashup> list_m = (ArrayList<Mashup>) obj_m;
-							for (int i = 0; i < list_m.size(); i++) {
-						%>
-						<tr>
-							<td><%=list_m.get(i).getC_NAME()%></td>
-							<td><%=list_m.get(i).getC_DESCRIPTION()%></td>
-							<td><%=list_m.get(i).getC_URL()%></td>
-						</tr>
-						<%
-							}
-						%>
-					</table>
-				</div>
-				
-				<div id='apiTable' style="display:none">
-				<div><h2>API推荐结果</h2></div>
-					<table>
-						<tr>
-							<th>API名称</th>
-							<th>API详情</th>
-							<th>API URL</th>
-							<th>推荐</th>
-						</tr>
-						<%
-							Object obj_a = request.getAttribute("apiList");
-							ArrayList<API> list_a = (ArrayList<API>) obj_a;
-							for (int i = 0; i < list_a.size(); i++) {
-						%>
-						<tr>
-							<td><%=list_a.get(i).getC_NAME()%></td>
-							<td><%=list_a.get(i).getC_DESCRIPTION()%></td>
-							<td><%=list_a.get(i).getC_URL()%></td>
-							<td><input type='button' value='继续推荐' onclick="window.open('./nextSearch?idList=<%=list_a.get(i).getN_ID()%>')"/></td>
-						</tr>
-						<%
-							}
-						%>
-					</table>
-				</div>
-			</div>
-		</div>
+	<%
+		Mashup mashup = (Mashup) request.getAttribute("mashup");
+		ArrayList<API> apiList = (ArrayList<API>) request.getAttribute("apiList");
+	%>
 
+	<% if (mashup != null) { %>
+	<div class="mashup-info">
+		<h3>Mashup信息</h3>
+		<p><strong>名称:</strong> <%= mashup.getC_NAME() %></p>
+		<p><strong>描述:</strong> <%= mashup.getC_DESCRIPTION() != null ? mashup.getC_DESCRIPTION() : "无描述" %></p>
+		<% if (mashup.getC_URL() != null && !mashup.getC_URL().isEmpty()) { %>
+		<p><strong>网址:</strong> <a href="<%= mashup.getC_URL() %>" target="_blank"><%= mashup.getC_URL() %></a></p>
+		<% } %>
 	</div>
-	<div class="foot">
-		<div class="copyright">
-        	<p>
-            ©2016 Designed by Wang.Yan <a href="#">使用说明</a> <a href="#">意见反馈</a> 京ICP证000001号 
-        	</p>
-    	</div>
+	<% } %>
+
+	<h3>关联的API列表</h3>
+	<% if (apiList != null && !apiList.isEmpty()) { %>
+	<table>
+		<tr>
+			<th>ID</th>
+			<th>API名称</th>
+			<th>描述</th>
+			<th>网址</th>
+		</tr>
+		<% for (API api : apiList) { %>
+		<tr>
+			<td><%= api.getN_ID() %></td>
+			<td><%= api.getC_NAME() %></td>
+			<td><%= api.getC_DESCRIPTION() != null ? api.getC_DESCRIPTION() : "无描述" %></td>
+			<td>
+				<% if (api.getC_URL() != null && !api.getC_URL().isEmpty()) { %>
+				<a href="<%= api.getC_URL() %>" target="_blank">访问</a>
+				<% } else { %>
+				无网址
+				<% } %>
+			</td>
+		</tr>
+		<% } %>
+	</table>
+	<% } else { %>
+	<p>该mashup没有关联的API。</p>
+	<% } %>
+
+	<div class="back-link">
+		<a href="index.jsp">返回首页</a>
 	</div>
+</div>
 </body>
 </html>

@@ -21,7 +21,7 @@ public class DBHelper {
 	public static Connection getConnection() {
 			try {
 				Class.forName(dbClassName).newInstance();
-				//System.out.println("Êı¾İ¿âÇı¶¯¼ÓÔØ³É¹¦");
+				//System.out.println("æ•°æ®åº“é©±åŠ¨åŠ è½½æˆåŠŸ");
 			} catch (InstantiationException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -36,7 +36,7 @@ public class DBHelper {
 		
 		try {
 			connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
-			//System.out.println("Êı¾İ¿âÁ¬½Ó³É¹¦");
+			//System.out.println("æ•°æ®åº“è¿æ¥æˆåŠŸ");
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

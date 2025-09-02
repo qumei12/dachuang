@@ -18,7 +18,7 @@ public class Go {
 	public static List<List<Integer>> mian(int[] recommand, int topk) {
 		// TODO Auto-generated method stub
 		if (trainMA == null || testMA == null) {
-			double trainset = 0.3;// ÑµÁ·¼¯µÄ±ÈÀı
+			double trainset = 0.3;// è®­ç»ƒé›†çš„æ¯”ä¾‹
 			long start = System.currentTimeMillis();
 			
 			GetMA gm = new GetMA();
@@ -30,44 +30,44 @@ public class Go {
 			testMA = gm.getTestSet(MA, row);
 		}
 
-			// System.out.print("¹ØÏµÌáÈ¡Ëã·¨:");
+			// System.out.print("å…³ç³»æå–ç®—æ³•:");
 
 			GetRelation gr = new GetRelation();
 
-			// JaccardËã·¨
-			// System.out.println("JaccardËã·¨");
+			// Jaccardç®—æ³•
+			// System.out.println("Jaccardç®—æ³•");
 			// double[][] relation = gr.getSimilarityByJS_REA(trainMA);
 
-			// ÎïÖÊÀ©É¢Ëã·¨
-			System.out.println("ÎïÖÊÀ©É¢Ëã·¨");
+			// ç‰©è´¨æ‰©æ•£ç®—æ³•
+			System.out.println("ç‰©è´¨æ‰©æ•£ç®—æ³•");
 			double[][] relation = gr.getSimilarityByMD_REA(trainMA);
 			
 		List<List<Integer>> returnList = new ArrayList<List<Integer>>();
 
 		for (int i = 0; i < recommand.length; i++) {
-			int l = 3;// ÍÆ¼öÊ÷µÄÉî¶È
-			int startApiId = recommand[i];// ÆğÊ¼ÍÆ¼öµã
+			int l = 3;// æ¨èæ ‘çš„æ·±åº¦
+			int startApiId = recommand[i];// èµ·å§‹æ¨èç‚¹
 
-			// System.out.print("ÍÆ¼öËã·¨£º");
+			// System.out.print("æ¨èç®—æ³•ï¼š");
 			GetRecommand grc = new GetRecommand();
 
-			// µ¥²½ÍÆ¼öËã·¨
-			System.out.println("µ¥²½ÍÆ¼öËã·¨");
+			// å•æ­¥æ¨èç®—æ³•
+			System.out.println("å•æ­¥æ¨èç®—æ³•");
 			//DefaultTreeModel dtm = grc.SinglePathRecommand(trainMA, relation, l, startApiId, topk);
 
 			List<List<Integer>> list = grc.SinglePathRecommand(testMA, relation, l, startApiId, topk);
 			//System.out.println(list);
 			returnList.addAll(list);
 			
-			// ¶à²½ÍÆ¼öËã·¨
-			// System.out.println("¶à²½ÍÆ¼öËã·¨");
+			// å¤šæ­¥æ¨èç®—æ³•
+			// System.out.println("å¤šæ­¥æ¨èç®—æ³•");
 			// DefaultTreeModel dtm = grc.MultiPathRecommend(testMA, relation,
 			// l, startApiId, topk);
 
-			// System.out.println("ÑµÁ·¼¯±ÈÀıÎª:" + trainset);
-			// System.out.println("ÍÆ¼öÊ÷µÄÉî¶ÈÎª:" + l);
-			// System.out.println("ÍÆ¼öÆğÊ¼µãÎª:" + (startApiId + 1));
-			// System.out.println("topkÎª:" + topk);
+			// System.out.println("è®­ç»ƒé›†æ¯”ä¾‹ä¸º:" + trainset);
+			// System.out.println("æ¨èæ ‘çš„æ·±åº¦ä¸º:" + l);
+			// System.out.println("æ¨èèµ·å§‹ç‚¹ä¸º:" + (startApiId + 1));
+			// System.out.println("topkä¸º:" + topk);
 
 			//System.out.println(trainset);
 			//System.out.println(l);

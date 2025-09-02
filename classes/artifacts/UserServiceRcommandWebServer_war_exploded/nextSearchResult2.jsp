@@ -12,7 +12,7 @@
 <style type="text/css">
 body {
 	font-family: Georgia, "Times New Roman", Times, serif;
-	font-size: big;
+	font-size: large;
 	margin: 5px;
 }
 
@@ -64,7 +64,7 @@ body {
 	text-decoration: none;
 	font-family: Arial, Helvetica, sans-serif;
 	padding: 7px 10px;
-	font-size: big;
+	font-size: large;
 	color: #FFF;
 	
 }
@@ -154,7 +154,7 @@ p, p>a {
 	
 	function nextRecommand(id){
 		chain.push(id);
-		var url = './nextSearch?idList=' + chain;
+		var url = './nextSearch?id=' + id;
 		//alert(url);
 		window.open(url);
 		//$.post(url);

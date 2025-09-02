@@ -14,10 +14,10 @@ public class LDAModel {
 	int userAmount;
 	int serviceAmount;
 
-	int[][] UsersInterests;// ¼ÆÊı¾ØÕó
+	int[][] UsersInterests;// è®¡æ•°çŸ©é˜µ
 	int[] UsersInterests_sum;
 
-	int[][] InterestsServices;// ¼ÆÊı¾ØÕó
+	int[][] InterestsServices;// è®¡æ•°çŸ©é˜µ
 	int[] InterestsServices_sum;
 
 	int[][] z;
@@ -36,7 +36,7 @@ public class LDAModel {
 
 //	int top_k;
 
-	public LDAModel() {// ĞŞ¸Ä¹¹Ôìº¯Êı£¬²»½ÓÊÕtop_k²ÎÊı
+	public LDAModel() {// ä¿®æ”¹æ„é€ å‡½æ•°ï¼Œä¸æ¥æ”¶top_kå‚æ•°
 
 		interestAmount = 80;
 		// userAmount = 100;
@@ -470,7 +470,7 @@ public class LDAModel {
 		}
 		System.out.println("Accuracy:" + ((double) sum * 10) / (top_k * userAmount));
 
-		// ÕÙ»ØÂÊ
+		// å¬å›ç‡
 		int like = 0;
 		for (int i = 0; i < userAmount; i++) {
 			for (int j = 0; j < serviceAmount; j++) {
@@ -483,7 +483,7 @@ public class LDAModel {
 		double recall = (double) sum/ like;
 		System.out.println("Recall rate: " + recall);
 
-		// º£Ã÷¾àÀë
+		// æµ·æ˜è·ç¦»
 
 		double[][] Q = new double[userAmount][userAmount];
 		for (int i = 0; i < userAmount - 1; i++) {
@@ -541,7 +541,7 @@ public class LDAModel {
 			}
 		}
 		hamming = 1 - sum_q / ((userAmount - 1) * userAmount / 2);
-		System.out.println("º£Ã÷¾àÀë£º" + hamming);
+		System.out.println("æµ·æ˜è·ç¦»ï¼š" + hamming);
 	}
 
 	public class TwordsComparable implements Comparator<Integer> {
