@@ -160,14 +160,19 @@ public class Search extends HttpServlet {
 
 				// 输出为每个兴趣主题推荐的API
 				System.out.println("为每个兴趣主题推荐的API:");
+				// 创建一个映射来存储API索引与其对应的主要兴趣主题
+				Map<Integer, Integer> apiToInterestMap = new HashMap<>();
 				for (int i = 0; i < recommendedAPIIndices.size(); i++) {
 					Integer apiIndex = recommendedAPIIndices.get(i);
 					if (apiIndex_ID.containsKey(apiIndex)) {
 						int apiId = apiIndex_ID.get(apiIndex);
 						API api = dbSearch.getApiById(apiId);
 						if (api != null && api.getN_ID() > 0) {
+							int interestId = interestIndices.get(i);
+							apiToInterestMap.put(apiIndex, interestId);
 							System.out.println("  推荐API " + (i+1) + ": " + api.getC_NAME() +
-									" (ID: " + api.getN_ID() + ", 索引: " + apiIndex + ")");
+									" (ID: " + api.getN_ID() + ", 索引: " + apiIndex + 
+									", 兴趣主题: " + interestId + ")");
 						}
 					}
 				}
@@ -184,11 +189,15 @@ public class Search extends HttpServlet {
 				}
 
 				System.out.println("为mashup推荐了 " + apiList.size() + " 个API（每个兴趣一个）");
+				// 将原始Mashup索引和API到兴趣主题的映射传递给前端
+				request.setAttribute("mashupIndex", mashupIndex);
+				request.setAttribute("apiToInterestMap", apiToInterestMap);
 			}
 
 			// 设置请求属性
 			request.setAttribute("mashup", mashup);  // 传递找到的mashup对象
 			request.setAttribute("apiList", apiList);
+			request.setAttribute("apiIndex_ID", apiIndex_ID); // 传递API索引到ID的映射
 
 			if(apiList.size() == 0){
 				request.getRequestDispatcher("notFind.jsp").forward(request, response);

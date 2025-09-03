@@ -1,7 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@page import="java.util.ArrayList"%>
-<%@page import="javabean.API"%>
-<%@page import="javabean.Mashup"%>
+<%@ page import="java.util.*" %>
+<%@ page import="javabean.*" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -66,9 +65,14 @@
 		}
 	</style>
 	<script type="text/javascript">
-		function continueRecommendation(apiId) {
-			// 直接跳转到继续推荐页面，传递选中的API ID
-			window.location.href = "nextSearch?id=" + apiId;
+		function continueRecommendation(apiId, element, mashupIndex, interestId) {
+			// 跳转到继续推荐页面，传递选中的API ID、原始Mashup索引和兴趣主题ID
+			var url = "nextSearch?id=" + apiId;
+			if (mashupIndex !== undefined && mashupIndex >= 0) {
+				url += "&mashupIndex=" + mashupIndex;
+				url += "&interestId=" + interestId;
+			}
+			window.location.href = url;
 		}
 	</script>
 </head>
@@ -79,6 +83,8 @@
 	<%
 		Mashup mashup = (Mashup) request.getAttribute("mashup");
 		ArrayList<API> apiList = (ArrayList<API>) request.getAttribute("apiList");
+		Integer mashupIndex = (Integer) request.getAttribute("mashupIndex");
+		Map<Integer, Integer> apiToInterestMap = (Map<Integer, Integer>) request.getAttribute("apiToInterestMap");
 	%>
 
 	<% if (mashup != null) { %>
@@ -115,7 +121,22 @@
 				<% } %>
 			</td>
 			<td class="action-column">
-				<button class="continue-button" onclick="continueRecommendation(<%= api.getN_ID() %>)">继续推荐</button>
+				<%
+					// 查找API对应的索引和兴趣主题
+					int apiIndex = -1;
+					int interestId = -1;
+					// 通过遍历apiIndex_ID映射来查找API索引
+					for (Map.Entry<Integer, Integer> entry : ((Map<Integer, Integer>) request.getAttribute("apiIndex_ID")).entrySet()) {
+						if (entry.getValue() == api.getN_ID()) {
+							apiIndex = entry.getKey();
+							break;
+						}
+					}
+					if (apiToInterestMap != null && apiIndex >= 0 && apiToInterestMap.containsKey(apiIndex)) {
+						interestId = apiToInterestMap.get(apiIndex);
+					}
+				%>
+				<button class="continue-button" onclick="continueRecommendation(<%= api.getN_ID() %>, this, <%= mashupIndex != null ? mashupIndex : -1 %>, <%= interestId %>)">继续推荐</button>
 			</td>
 		</tr>
 		<% } %>
