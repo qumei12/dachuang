@@ -281,5 +281,37 @@ public class DBSearch {
 
 		return mashup.getN_ID() != -1 ? mashup : null;
 	}
+	/**
+	 * 根据API索引获取API ID
+	 * @param index API索引
+	 * @return API ID
+	 */
+	public int getApiIdByIndex(int index) {
+		Connection connection = DBHelper.getConnection();
+		Statement statement = null;
+		int apiId = -1;
+
+		try {
+			statement = connection.createStatement();
+			String sql = "select n_id from `tb_api` order by n_id limit " + index + ",1";
+			ResultSet rs = statement.executeQuery(sql);
+
+			if (rs.next()) {
+				apiId = rs.getInt(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (statement != null) statement.close();
+				if (connection != null) connection.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return apiId;
+	}
+
 
 }

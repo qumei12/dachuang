@@ -48,7 +48,29 @@
 		a:hover {
 			text-decoration: underline;
 		}
+		.continue-button {
+			background-color: #4CAF50;
+			color: white;
+			padding: 5px 10px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 14px;
+		}
+		.continue-button:hover {
+			background-color: #45a049;
+		}
+		.action-column {
+			width: 120px;
+			text-align: center;
+		}
 	</style>
+	<script type="text/javascript">
+		function continueRecommendation(apiId) {
+			// 直接跳转到继续推荐页面，传递选中的API ID
+			window.location.href = "nextSearch?id=" + apiId;
+		}
+	</script>
 </head>
 <body>
 <div class="container">
@@ -78,6 +100,7 @@
 			<th>API名称</th>
 			<th>描述</th>
 			<th>网址</th>
+			<th class="action-column">操作</th>
 		</tr>
 		<% for (API api : apiList) { %>
 		<tr>
@@ -90,6 +113,9 @@
 				<% } else { %>
 				无网址
 				<% } %>
+			</td>
+			<td class="action-column">
+				<button class="continue-button" onclick="continueRecommendation(<%= api.getN_ID() %>)">继续推荐</button>
 			</td>
 		</tr>
 		<% } %>

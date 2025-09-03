@@ -34,6 +34,8 @@ import dbhelper.DBSearch;
 import javabean.API;
 import javabean.Mashup;
 
+
+
 public class IndexUtil {
 	public void createIndex(Map<Integer, String> mashupIndex_Name){
 		Directory directory = null;
@@ -235,5 +237,58 @@ public class IndexUtil {
 		}
 
 		return interest;
+	}
+	// 在IndexUtil类中添加以下方法
+	/**
+	 * 为指定mashup推荐API，每个兴趣主题推荐一个最相关的API
+	 * @param mashupIndex mashup索引
+	 * @param interestCount 兴趣主题数量
+	 * @param mashupWordsBag mashup词袋数据
+	 * @param apiWordsBag API词袋数据
+	 * @param apiIndex_ID API索引到ID的映射
+	 * @return 推荐的API列表，每个兴趣一个API
+	 */
+	public List<API> recommendOneAPIPerInterest(Integer mashupIndex, int interestCount,
+												Map<Integer, List<Integer>> mashupWordsBag,
+												Map<Integer, List<Integer>> apiWordsBag,
+												Map<Integer, Integer> apiIndex_ID) {
+		List<API> recommendedAPIs = new ArrayList<>();
+
+		// 检查mashupIndex是否为null
+		if (mashupIndex == null) {
+			System.out.println("Mashup索引为空");
+			return recommendedAPIs;
+		}
+
+		// 获取该mashup的多个兴趣（默认获取前interestCount个最相关的兴趣）
+		List<InterestScore> interests = getTopInterests(mashupIndex, mashupWordsBag, interestCount);
+
+		// 为每个兴趣推荐一个最相关的API
+		DBSearch dbSearch = new DBSearch();
+		Set<Integer> selectedAPIs = new HashSet<>(); // 避免重复推荐同一个API
+
+		for (int i = 0; i < Math.min(interestCount, interests.size()); i++) {
+			InterestScore interestScore = interests.get(i);
+			int interestId = interestScore.interestId;
+
+			// 获取该兴趣相关的API列表
+			List<Integer> apiListForInterest = apiWordsBag.get(interestId);
+			if (apiListForInterest != null && !apiListForInterest.isEmpty()) {
+				// 查找第一个未被选择的API
+				for (int apiIndex : apiListForInterest) {
+					if (!selectedAPIs.contains(apiIndex) && apiIndex_ID.containsKey(apiIndex)) {
+						int apiId = apiIndex_ID.get(apiIndex);
+						API api = dbSearch.getApiById(apiId);
+						if (api != null && api.getN_ID() > 0) {
+							recommendedAPIs.add(api);
+							selectedAPIs.add(apiIndex); // 记录已选API避免重复
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		return recommendedAPIs;
 	}
 }

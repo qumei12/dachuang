@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
+
 public class LDAModel {
 	public Integer[][] UsersServices;
 	int interestAmount;
@@ -35,6 +36,8 @@ public class LDAModel {
 	int beginSaveIters;
 
 //	int top_k;
+
+
 
 	public LDAModel() {// 修改构造函数，不接收top_k参数
 
@@ -566,4 +569,85 @@ public class LDAModel {
 		}
 	}
 
+	/**
+	 * 为指定用户(Mashup)推荐API，每个兴趣主题推荐一个最相关的API
+	 * @param userId 用户ID（即Mashup ID）
+	 * @param topK 兴趣主题数量
+	 * @return 推荐的API索引列表
+	 */
+	public List<Integer> recommandOneAPIPerInterest(int userId, int topK) {
+		List<Integer> recommandedAPIs = new ArrayList<>();
+
+		System.out.println("为用户ID " + userId + " 推荐API，选取Top " + topK + " 个兴趣主题");
+
+		// 获取用户对各个兴趣主题的概率
+		Double[] interestProbs = new Double[interestAmount];
+		for (int k = 0; k < interestAmount; k++) {
+			interestProbs[k] = theta[userId][k];
+		}
+
+		// 找出概率最高的topK个兴趣主题
+		List<Integer> topInterestIndices = new ArrayList<>();
+		for (int i = 0; i < interestAmount; i++) {
+			topInterestIndices.add(i);
+		}
+
+		// 按照概率排序
+		Collections.sort(topInterestIndices, new Comparator<Integer>() {
+			@Override
+			public int compare(Integer o1, Integer o2) {
+				if (interestProbs[o1] > interestProbs[o2]) return -1;
+				else if (interestProbs[o1] < interestProbs[o2]) return 1;
+				else return 0;
+			}
+		});
+
+		// 为每个topK兴趣主题推荐一个最相关的API
+		for (int i = 0; i < Math.min(topK, interestAmount); i++) {
+			int interestId = topInterestIndices.get(i);
+
+			// 在该兴趣主题中找出最相关的API
+			double maxProb = -1;
+			int bestAPIId = -1;
+
+			for (int apiId = 0; apiId < serviceAmount; apiId++) {
+				if (phi[interestId][apiId] > maxProb) {
+					maxProb = phi[interestId][apiId];
+					bestAPIId = apiId;
+				}
+			}
+
+			if (bestAPIId != -1) {
+				recommandedAPIs.add(bestAPIId);
+				System.out.println("  兴趣主题 " + interestId + " (概率: " + String.format("%.6f", interestProbs[interestId]) +
+						") 推荐API索引 " + bestAPIId + " (概率: " + String.format("%.6f", maxProb) + ")");
+			}
+		}
+
+		return recommandedAPIs;
+	}
+
+	// 添加公共getter方法
+	public int getInterestAmount() {
+		return interestAmount;
+	}
+
+	public int getUserAmount() {
+		return userAmount;
+	}
+
+	public int getServiceAmount() {
+		return serviceAmount;
+	}
+
+	public double[][] getTheta() {
+		return theta;
+	}
+
+	public double[][] getPhi() {
+		return phi;
+	}
+
 }
+
+
