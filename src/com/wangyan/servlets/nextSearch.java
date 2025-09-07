@@ -17,7 +17,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.wangyan.index.APIMap;
 
-import allthings.GetRelation;
 import dbhelper.DBSearch;
 import javabean.API;
 import model.LDAModel;
@@ -49,9 +48,12 @@ public class nextSearch extends HttpServlet {
 			ldaModel.inferenceModel();
 		}
 		
+		// 注释掉对已删除的GetRelation类的使用
+		/*
 		if (apiRelation == null) {
 			apiRelation = new GetRelation().getSimilarityByMD_REA();
 		}
+		*/
 
 		apiIndex_ID = new HashMap<>();
 		apiIndex_Name = new HashMap<>();
