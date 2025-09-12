@@ -3,6 +3,7 @@ package com.wangyan.servlets;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -29,12 +30,12 @@ public class nextSearch extends HttpServlet {
 	
 	private static LDAModel ldaModel = null; // 添加LDA模型实例
 
-	double[][] apiRelation = null;
+	double[][] supplyRelation = null;
 
 	int top_k = 3;
 
-	Map<Integer, Integer> apiIndex_ID = null;
-	Map<Integer, String> apiIndex_Name = null;
+	Map<Integer, Integer> supplyIndex_ID = null;
+	Map<Integer, String> supplyIndex_Name = null;
 
 	/**
 	 * @see HttpServlet#HttpServlet()
@@ -48,511 +49,308 @@ public class nextSearch extends HttpServlet {
 			ldaModel.inferenceModel();
 		}
 		
-		// 注释掉对已删除的GetRelation类的使用
-		/*
-		if (apiRelation == null) {
-			apiRelation = new GetRelation().getSimilarityByMD_REA();
-		}
-		*/
-
-		apiIndex_ID = new HashMap<>();
-		apiIndex_Name = new HashMap<>();
-		new APIMap().setMap(apiIndex_ID, apiIndex_Name);
-	}
-	
-	/**
-	 * 基于原始Mashup的topK兴趣主题推荐API
-	 * @param currentApiIndex 当前API索引
-	 * @param top 推荐数量
-	 * @param mashupIndex 原始Mashup索引
-	 * @param topK 原始Mashup的兴趣主题数量
-	 * @return 推荐的API索引数组
-	 */
-	private int[] getTopMAFromMashupInterests(int currentApiIndex, int top, int mashupIndex, int topK) {
-		int[] recom = new int[top];
-		
-		// 获取原始Mashup的topK个兴趣主题
-		Double[] interestProbs = new Double[ldaModel.getInterestAmount()];
-		for (int k = 0; k < ldaModel.getInterestAmount(); k++) {
-			interestProbs[k] = ldaModel.getTheta()[mashupIndex][k];
-		}
-
-		List<Integer> interestIndices = new ArrayList<>();
-		for (int i = 0; i < ldaModel.getInterestAmount(); i++) {
-			interestIndices.add(i);
-		}
-
-		// 按照概率排序
-		interestIndices.sort((o1, o2) -> {
-			if (interestProbs[o1] > interestProbs[o2]) return -1;
-			else if (interestProbs[o1] < interestProbs[o2]) return 1;
-			else return 0;
-		});
-		
-		System.out.println("原始Mashup的Top " + topK + " 个兴趣主题:");
-		for (int i = 0; i < Math.min(topK, ldaModel.getInterestAmount()); i++) {
-			int interestId = interestIndices.get(i);
-			System.out.println("  兴趣主题 " + interestId + " - 概率: " + String.format("%.6f", interestProbs[interestId]));
-		}
-
-		// 查找当前API属于哪个兴趣主题（在原始Mashup的兴趣主题中）
-		int currentInterest = -1;
-		for (int i = 0; i < Math.min(topK, ldaModel.getInterestAmount()); i++) {
-			int interestId = interestIndices.get(i);
-			if (ldaModel.getPhi()[interestId][currentApiIndex] > 0) {
-				currentInterest = interestId;
-				break;
-			}
-		}
-		
-		// 如果当前API不属于任何原始兴趣主题，则使用概率最高的主题
-		if (currentInterest == -1 && !interestIndices.isEmpty()) {
-			currentInterest = interestIndices.get(0);
-		}
-		
-		System.out.println("当前API (索引: " + currentApiIndex + ") 属于兴趣主题: " + currentInterest);
-
-		// 只在当前API所属的兴趣主题下查找其他API
-		if (currentInterest >= 0) {
-			double[] apiProbs = new double[ldaModel.getServiceAmount()];
-			int[] apiIndices = new int[ldaModel.getServiceAmount()];
-			
-			for(int j = 0; j < ldaModel.getServiceAmount(); j++){
-				apiIndices[j] = j;
-				apiProbs[j] = ldaModel.getPhi()[currentInterest][j];
-			}
-			
-			// 按概率降序排序
-			for(int x = 0; x < apiProbs.length; x++){
-				for(int y = 0; y < apiProbs.length - x - 1; y++){
-					if(apiProbs[y] < apiProbs[y + 1]){
-						double temp1 = apiProbs[y];
-						apiProbs[y] = apiProbs[y + 1];
-						apiProbs[y + 1] = temp1;
-
-						int temp2 = apiIndices[y];
-						apiIndices[y] = apiIndices[y + 1];
-						apiIndices[y + 1] = temp2;
-					}
-				}
-			}
-			
-			// 选择该兴趣主题下概率最高的API（排除当前API）
-			int recomCount = 0;
-			for(int j = 0; j < apiIndices.length && recomCount < top; j++){
-				if(apiIndices[j] != currentApiIndex){
-					recom[recomCount] = apiIndices[j];
-					System.out.println("从兴趣主题 " + currentInterest + " 推荐API (索引: " + recom[recomCount] + ")");
-					recomCount++;
-				}
-			}
-			
-			// 如果推荐数量不足，使用默认方法补充
-			if (recomCount < top) {
-				System.out.println("补充推荐数量: " + (top - recomCount));
-				int[] defaultRecom = getTopMAByInterest(currentApiIndex, top - recomCount);
-				for (int i = 0; i < defaultRecom.length && recomCount < top; i++) {
-					recom[recomCount] = defaultRecom[i];
-					recomCount++;
-				}
-			}
-		} else {
-			// 如果无法确定兴趣主题，使用默认方法
-			System.out.println("无法确定当前API的兴趣主题，使用默认方法进行推荐");
-			return getTopMAByInterest(currentApiIndex, top);
-		}
-		
-		return recom;
-	}
-	
-	/**
-	 * 查找API在原始Mashup主要兴趣主题中的主题
-	 * @param apiIndex API索引
-	 * @param mashupIndex Mashup索引
-	 * @return 主要兴趣主题索引
-	 */
-	private int findMainInterestForMashup(int apiIndex, int mashupIndex) {
-		// 获取原始Mashup的topK个兴趣主题
-		Double[] interestProbs = new Double[ldaModel.getInterestAmount()];
-		for (int k = 0; k < ldaModel.getInterestAmount(); k++) {
-			interestProbs[k] = ldaModel.getTheta()[mashupIndex][k];
-		}
-
-		List<Integer> interestIndices = new ArrayList<>();
-		for (int i = 0; i < ldaModel.getInterestAmount(); i++) {
-			interestIndices.add(i);
-		}
-
-		// 按照概率排序
-		interestIndices.sort((o1, o2) -> {
-			if (interestProbs[o1] > interestProbs[o2]) return -1;
-			else if (interestProbs[o1] < interestProbs[o2]) return 1;
-			else return 0;
-		});
-		
-		// 查找当前API属于哪个兴趣主题（在原始Mashup的主要兴趣主题中）
-		for (int i = 0; i < Math.min(5, ldaModel.getInterestAmount()); i++) { // 默认检查前5个兴趣主题
-			int interestId = interestIndices.get(i);
-			if (ldaModel.getPhi()[interestId][apiIndex] > 0) {
-				return interestId;
-			}
-		}
-		
-		// 如果没找到，返回第一个主要兴趣主题
-		if (!interestIndices.isEmpty()) {
-			return interestIndices.get(0);
-		}
-		
-		// 如果还是没有找到，返回默认方法的结果
-		return findMainInterest(apiIndex);
+		// 初始化索引映射
+		supplyIndex_ID = new HashMap<>();
+		supplyIndex_Name = new HashMap<>();
+		new APIMap().setMap(supplyIndex_ID, supplyIndex_Name);
 	}
 
 	/**
-	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
-	 *      response)
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
-	protected void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
-		// 设置请求和响应的字符编码
-		request.setCharacterEncoding("UTF-8");
-		response.setCharacterEncoding("UTF-8");
-		response.setContentType("text/html;charset=UTF-8");
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		int supplyId = Integer.parseInt(request.getParameter("id"));
+		String diseaseIndexStr = request.getParameter("diseaseIndex");
+		String interestIdStr = request.getParameter("interestId");
 		
-		String queryString = request.getQueryString();
-		if (queryString != null && queryString.contains("%")) {
-			// URL 中包含编码参数，确保正确解码
-			request.getParameterMap(); // 触发参数解析
+		int diseaseIndex = -1;
+		int interestId = -1;
+		
+		if (diseaseIndexStr != null && !diseaseIndexStr.isEmpty() && !diseaseIndexStr.equals("-1")) {
+			diseaseIndex = Integer.parseInt(diseaseIndexStr);
 		}
+		
+		if (interestIdStr != null && !interestIdStr.isEmpty() && !interestIdStr.equals("-1")) {
+			interestId = Integer.parseInt(interestIdStr);
+		}
+		
+		System.out.println("接收到的参数 - 耗材ID: " + supplyId + ", 病种索引: " + diseaseIndex + ", 兴趣主题ID: " + interestId);
+		
 		try {
-			// 获取参数并进行验证
-			String params = request.getParameter("id");
-			System.out.println("接收到的参数: " + params);
+			// 获取当前耗材信息
+			DBSearch dbs = new DBSearch();
+			API currentSupply = dbs.getSupplyById(supplyId);
 			
-			// 获取原始Mashup的topK兴趣主题（可选参数）
-			String mashupIndexStr = request.getParameter("mashupIndex");
-			String interestIdStr = request.getParameter("interestId");
-			String topKStr = request.getParameter("topK");
+			// 为当前耗材推荐相关的其他耗材
+			ArrayList<API> recommandSupplyList = new ArrayList<>();
 			
-			int mashupIndex = -1;
-			int interestId = -1;
-			int topK = top_k; // 默认值
-			
-			if (mashupIndexStr != null && !mashupIndexStr.isEmpty()) {
-				try {
-					mashupIndex = Integer.parseInt(mashupIndexStr);
-				} catch (NumberFormatException e) {
-					System.err.println("Mashup索引格式错误: " + mashupIndexStr);
-				}
-			}
-			
-			if (interestIdStr != null && !interestIdStr.isEmpty()) {
-				try {
-					interestId = Integer.parseInt(interestIdStr);
-				} catch (NumberFormatException e) {
-					System.err.println("兴趣主题ID格式错误: " + interestIdStr);
-				}
-			}
-			
-			if (topKStr != null && !topKStr.isEmpty()) {
-				try {
-					topK = Integer.parseInt(topKStr);
-				} catch (NumberFormatException e) {
-					System.err.println("TopK值格式错误: " + topKStr);
-				}
-			}
-
-			// 检查参数是否为空
-			if (params == null || params.trim().isEmpty() || "null".equals(params)) {
-				System.err.println("参数为空或不存在");
-				request.setAttribute("error", "参数不能为空");
-				request.getRequestDispatcher("error.jsp").forward(request, response);
-				return;
-			}
-
-			// 将单个ID转换为数组格式以兼容现有代码
-			String[] apis_str = new String[]{params};
-
-			int[] apis_int = new int[apis_str.length];
-			for (int i = 0; i < apis_str.length; i++){
-				// 添加空值检查
-				if (apis_str[i] == null || apis_str[i].trim().isEmpty() || "null".equals(apis_str[i])) {
-					throw new NumberFormatException("参数格式错误: 包含空值或null");
-				}
-				try {
-					apis_int[i] = Integer.parseInt(apis_str[i]);
-				} catch (NumberFormatException e) {
-					throw new NumberFormatException("参数格式错误: 无法解析为数字 - " + apis_str[i]);
-				}
-			}
-
-			int startApiId = apis_int[apis_int.length - 1];
-
-			// 检查映射是否初始化
-			if (apiIndex_ID == null) {
-				throw new ServletException("API索引映射未初始化");
-			}
-
-			Set<Integer> keySet = apiIndex_ID.keySet();
-			Iterator<Integer> it = keySet.iterator();
-
-			int startApiIndex = 0;
-			boolean found = false;
-
-			while (it.hasNext()) {
-				Integer key = (Integer) it.next();
-				// 添加空值检查
-				if (key != null && apiIndex_ID.get(key) != null && apiIndex_ID.get(key) == startApiId) {
-					startApiIndex = key;
-					found = true;
-					break;
-				}
-			}
-
-			// 如果未找到对应的API索引
-			if (!found) {
-				System.err.println("未找到API索引，startApiId: " + startApiId);
-				request.setAttribute("error", "未找到对应的API，ID: " + startApiId);
-				request.getRequestDispatcher("error.jsp").forward(request, response);
-				return;
-			}
-
-			// 使用基于同一兴趣的推荐方法（关键修改）
-			int[] recommandApiIndex;
-			int mainInterest = -1;
-			
-			if (mashupIndex >= 0 && interestId >= 0) {
-				// 使用传递的兴趣主题ID进行推荐
-				recommandApiIndex = getTopMABySpecificInterest(startApiIndex, top_k, interestId);
-				mainInterest = interestId;
-				System.out.println("使用传递的兴趣主题 (ID: " + interestId + ") 进行推荐");
-			} else if (mashupIndex >= 0) {
-				// 使用原始Mashup的topK兴趣主题进行推荐
-				recommandApiIndex = getTopMAFromMashupInterests(startApiIndex, top_k, mashupIndex, topK);
-				// 获取当前API在原始Mashup主要兴趣主题中的主题
-				mainInterest = findMainInterestForMashup(startApiIndex, mashupIndex);
-				System.out.println("使用原始Mashup (索引: " + mashupIndex + ") 的兴趣主题进行推荐");
+			// 根据是否提供了兴趣主题ID来决定推荐策略
+			if(interestId >= 0) {
+				// 使用指定的兴趣主题进行推荐
+				System.out.println("使用指定的兴趣主题进行推荐: " + interestId);
+				recommandSupplyList = recommandByInterest(interestId, supplyId);
+			} else if (diseaseIndex >= 0) {
+				// 使用病种的TopK兴趣主题进行推荐
+				System.out.println("使用病种的TopK兴趣主题进行推荐");
+				recommandSupplyList = recommand(diseaseIndex, supplyId);
 			} else {
-				// 如果没有原始Mashup信息，则使用默认方法
-				recommandApiIndex = getTopMAByInterest(startApiIndex, top_k);
-				mainInterest = findMainInterest(startApiIndex);
-				System.out.println("使用默认方法进行推荐");
+				// 默认推荐方法
+				System.out.println("使用默认推荐方法");
+				recommandSupplyList = recommandDefault(supplyId);
 			}
-
-			List<Integer> recommandApiId = new ArrayList<>();
-
-			for(int i = 0; i < recommandApiIndex.length; i++){
-				// 添加空值检查
-				if (apiIndex_ID != null && apiIndex_ID.get(recommandApiIndex[i]) != null) {
-					int id = apiIndex_ID.get(recommandApiIndex[i]);
-					recommandApiId.add(id);
-				}
-			}
-
-			List<API> recommandResult = new ArrayList<>();
-			DBSearch dbSearch = new DBSearch();
-
-			System.out.println("当前API (ID: " + startApiId + ") 属于兴趣主题: " + mainInterest);
 			
-			for(int i = 0; i < recommandApiId.size(); i++){
-				API api = dbSearch.getApiById(recommandApiId.get(i));
-				recommandResult.add(api);
-				System.out.println("推荐的API (ID: " + recommandApiId.get(i) + ") 属于兴趣主题: " + mainInterest);
-			}
-
-			List<API> recommandChain = new ArrayList<>();
-
-			for(int i = 0; i < apis_int.length; i++){
-				API api = dbSearch.getApiById(apis_int[i]);
-				recommandChain.add(api);
-			}
-
-			request.setAttribute("result", recommandResult);
-			request.setAttribute("chain", recommandChain);
-
-			request.getRequestDispatcher("nextSearchResult2.jsp").forward(request, response);
-
-		} catch (NumberFormatException e) {
-			System.err.println("数字格式异常: " + e.getMessage());
-			e.printStackTrace();
-			request.setAttribute("error", "参数格式错误，请提供有效的数字ID: " + e.getMessage());
-			request.getRequestDispatcher("error.jsp").forward(request, response);
-		} catch (Exception e) {
-			System.err.println("系统异常: " + e.getMessage());
+			// 传递数据到JSP页面
+			request.setAttribute("currentSupply", currentSupply);
+			request.setAttribute("recommandSupplyList", recommandSupplyList);
+			request.setAttribute("supplyIndex_ID", supplyIndex_ID);
+			request.setAttribute("supplyIndex_Name", supplyIndex_Name);
+			
+			request.getRequestDispatcher("nextSearchResult.jsp").forward(request, response);
+			
+		} catch(Exception e) {
 			e.printStackTrace();
 			request.setAttribute("error", "系统错误: " + e.getMessage());
 			request.getRequestDispatcher("error.jsp").forward(request, response);
 		}
 	}
 
-
 	/**
-	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
-	 *      response)
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
-	protected void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
 		doGet(request, response);
 	}
-
+	
 	/**
-	 * 基于指定兴趣主题的API推荐方法
-	 * @param index 当前API索引
-	 * @param top 推荐数量
-	 * @param interestId 指定的兴趣主题ID
-	 * @return 推荐的API索引数组
+	 * 根据病种的TopK兴趣主题推荐耗材
+	 * @param diseaseIndex 病种索引
+	 * @param excludeSupplyId 需要排除的耗材ID
+	 * @return 推荐的耗材列表
 	 */
-	private int[] getTopMABySpecificInterest(int index, int top, int interestId) {
-		int[] recom = new int[top];
+	private ArrayList<API> recommand(int diseaseIndex, int excludeSupplyId) {
+		ArrayList<API> recommandSupplyList = new ArrayList<>();
 		
-		System.out.println("当前API索引 " + index + " 属于指定兴趣主题: " + interestId);
-		
-		// 在指定兴趣主题下找到其他高概率API
-		double[] arr = new double[ldaModel.getServiceAmount()];
-		int[] arr_index = new int[ldaModel.getServiceAmount()];
-		
-		for(int i = 0; i < ldaModel.getServiceAmount(); i++){
-			arr_index[i] = i;
-			arr[i] = ldaModel.getPhi()[interestId][i];
-		}
-		
-		// 按概率降序排序
-		for(int i = 0; i < arr.length; i++){
-			for(int j = 0; j < arr.length - i - 1; j++){
-				if(arr[j] < arr[j + 1]){
-					double temp1 = arr[j];
-					arr[j] = arr[j + 1];
-					arr[j + 1] = temp1;
-
-					int temp2 = arr_index[j];
-					arr_index[j] = arr_index[j + 1];
-					arr_index[j + 1] = temp2;
+		try {
+			// 获取病种的TopK兴趣主题
+			int[] topInterests = getTopInterest(diseaseIndex, top_k);
+			
+			// 为每个兴趣主题推荐一个耗材
+			Set<Integer> addedSupplyIds = new HashSet<>(); // 避免重复添加
+			for(int interestIndex : topInterests) {
+				int[] recommandSupplies = getTopSupply(interestIndex, 10); // 获取该兴趣主题下的Top10耗材
+				
+				// 选择第一个不是excludeSupplyId且未添加过的耗材
+				for(int supplyIndex : recommandSupplies) {
+					int supplyId = supplyIndex_ID.get(supplyIndex);
+					if(supplyId != excludeSupplyId && !addedSupplyIds.contains(supplyId)) {
+						API supply = new DBSearch().getSupplyById(supplyId);
+						recommandSupplyList.add(supply);
+						addedSupplyIds.add(supplyId);
+						System.out.println("为兴趣主题 " + interestIndex + " 推荐耗材: " + supply.getC_NAME());
+						break;
+					}
 				}
 			}
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
 		
-		// 选择指定兴趣主题下概率最高的API（排除当前API）
-		for(int i = 0, j = 0; i < top; j++){
-			if (j >= arr_index.length) {
-				break;
-			}
-			if(arr_index[j] != index){
-				recom[i] = arr_index[j];
-				System.out.println("推荐的API (索引: " + recom[i] + ") 属于兴趣主题: " + interestId);
-				i++;
-			}
-		}
-		
-		return recom;
+		return recommandSupplyList;
 	}
-
+	
 	/**
-	 * 基于相同兴趣主题的API推荐方法
-	 * @param index 当前API索引
-	 * @param top 推荐数量
-	 * @return 推荐的API索引数组
+	 * 根据指定的兴趣主题推荐耗材
+	 * @param interestId 兴趣主题ID
+	 * @param excludeSupplyId 需要排除的耗材ID
+	 * @return 推荐的耗材列表
 	 */
-	private int[] getTopMAByInterest(int index, int top) {
-		int[] recom = new int[top];
+	private ArrayList<API> recommandByInterest(int interestId, int excludeSupplyId) {
+		ArrayList<API> recommandSupplyList = new ArrayList<>();
 		
-		// 找到当前API最可能的兴趣主题
-		int mainInterest = findMainInterest(index);
-		System.out.println("当前API索引 " + index + " 属于兴趣主题: " + mainInterest);
-		
-		// 在同一兴趣主题下找到其他高概率API
-		double[] arr = new double[ldaModel.getServiceAmount()];
-		int[] arr_index = new int[ldaModel.getServiceAmount()];
-		
-		for(int i = 0; i < ldaModel.getServiceAmount(); i++){
-			arr_index[i] = i;
-			arr[i] = ldaModel.getPhi()[mainInterest][i];
-		}
-		
-		// 按概率降序排序
-		for(int i = 0; i < arr.length; i++){
-			for(int j = 0; j < arr.length - i - 1; j++){
-				if(arr[j] < arr[j + 1]){
-					double temp1 = arr[j];
-					arr[j] = arr[j + 1];
-					arr[j + 1] = temp1;
-
-					int temp2 = arr_index[j];
-					arr_index[j] = arr_index[j + 1];
-					arr_index[j + 1] = temp2;
+		try {
+			int[] recommandSupplies = getTopSupply(interestId, 10); // 获取该兴趣主题下的Top10耗材
+			
+			// 选择前几个不是excludeSupplyId的耗材
+			Set<Integer> addedSupplyIds = new HashSet<>();
+			for(int supplyIndex : recommandSupplies) {
+				int supplyId = supplyIndex_ID.get(supplyIndex);
+				if(supplyId != excludeSupplyId && !addedSupplyIds.contains(supplyId)) {
+					API supply = new DBSearch().getSupplyById(supplyId);
+					recommandSupplyList.add(supply);
+					addedSupplyIds.add(supplyId);
+					System.out.println("为兴趣主题 " + interestId + " 推荐耗材: " + supply.getC_NAME());
+					
+					// 最多推荐3个耗材
+					if(recommandSupplyList.size() >= 3) {
+						break;
+					}
 				}
 			}
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
 		
-		// 选择同一兴趣主题下概率最高的API（排除当前API）
-		for(int i = 0, j = 0; i < top; j++){
-			if (j >= arr_index.length) {
-				break;
-			}
-			if(arr_index[j] != index){
-				recom[i] = arr_index[j];
-				System.out.println("推荐的API (索引: " + recom[i] + ") 属于兴趣主题: " + mainInterest);
-				i++;
-			}
-		}
-		
-		return recom;
+		return recommandSupplyList;
 	}
-
+	
 	/**
-	 * 查找指定API索引的主要兴趣主题
-	 * @param index API索引
-	 * @return 主要兴趣主题索引
+	 * 默认推荐方法
+	 * @param excludeSupplyId 需要排除的耗材ID
+	 * @return 推荐的耗材列表
 	 */
-	private int findMainInterest(int index) {
-		int mainInterest = -1;
-		double maxProb = -1;
+	private ArrayList<API> recommandDefault(int excludeSupplyId) {
+		ArrayList<API> recommandSupplyList = new ArrayList<>();
 		
-		// 遍历所有兴趣主题，找到当前API概率最高的主题
-		for (int k = 0; k < ldaModel.getInterestAmount(); k++) {
-			if (ldaModel.getPhi()[k][index] > maxProb) {
-				maxProb = ldaModel.getPhi()[k][index];
-				mainInterest = k;
+		try {
+			// 获取供应关系矩阵
+			if(supplyRelation == null) {
+				supplyRelation = new double[supplyIndex_ID.size()][supplyIndex_ID.size()];
+				// 初始化供应关系矩阵（这里可以基于LDA模型或其他方法计算相似度）
+				for(int i = 0; i < supplyIndex_ID.size(); i++) {
+					for(int j = 0; j < supplyIndex_ID.size(); j++) {
+						if(i == j) {
+							supplyRelation[i][j] = 0; // 自身相似度为0
+						} else {
+							// 简单的默认相似度计算（可以根据需要改进）
+							supplyRelation[i][j] = 1.0 / (1.0 + Math.abs(i - j));
+						}
+					}
+				}
 			}
+			
+			// 查找当前耗材的索引
+			int currentSupplyIndex = -1;
+			for(Map.Entry<Integer, Integer> entry : supplyIndex_ID.entrySet()) {
+				if(entry.getValue() == excludeSupplyId) {
+					currentSupplyIndex = entry.getKey();
+					break;
+				}
+			}
+			
+			if(currentSupplyIndex >= 0) {
+				// 基于相似度排序并推荐
+				List<SupplySimilarity> similarities = new ArrayList<>();
+				for(int i = 0; i < supplyIndex_ID.size(); i++) {
+					if(i != currentSupplyIndex) {
+						similarities.add(new SupplySimilarity(i, supplyRelation[currentSupplyIndex][i]));
+					}
+				}
+				
+				// 按相似度降序排序
+				Collections.sort(similarities, new Comparator<SupplySimilarity>() {
+					@Override
+					public int compare(SupplySimilarity s1, SupplySimilarity s2) {
+						return Double.compare(s2.similarity, s1.similarity);
+					}
+				});
+				
+				// 选择前几个推荐
+				int count = 0;
+				for(SupplySimilarity similarity : similarities) {
+					if(count >= 3) break; // 最多推荐3个
+					
+					int supplyId = supplyIndex_ID.get(similarity.index);
+					API supply = new DBSearch().getSupplyById(supplyId);
+					if(supply != null && supply.getN_ID() > 0) {
+						recommandSupplyList.add(supply);
+						count++;
+						System.out.println("默认推荐耗材: " + supply.getC_NAME() + " (相似度: " + similarity.similarity + ")");
+					}
+				}
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
 		
-		return mainInterest;
+		return recommandSupplyList;
 	}
-
-	private int[] getTopMA(int index, int top){
+	
+	/**
+	 * 获取病种的TopK兴趣主题
+	 * @param index 病种索引
+	 * @param top TopK数量
+	 * @return 兴趣主题索引数组
+	 */
+	private int[] getTopInterest(int index, int top){
 		int[] recom = new int[top];
-
-		double[] arr = new double[apiRelation[index].length];
-		int[] arr_index = new int[apiRelation[index].length];
-
-		for(int i = 0; i < apiRelation[index].length; i++){
+		
+		Double[] arr = new Double[ldaModel.getTheta()[index].length];
+		int[] arr_index = new int[ldaModel.getTheta()[index].length];
+		
+		for(int i = 0; i < ldaModel.getTheta()[index].length; i++){
 			arr_index[i] = i;
-			arr[i] = apiRelation[index][i];
+			arr[i] = ldaModel.getTheta()[index][i];
 		}
-
+		
 		for(int i = 0;i < arr.length;i++){
 			for(int j = 0; j < arr.length - i - 1;j++){
 				if(arr[j] < arr[j + 1]){
 					double temp1 = arr[j];
 					arr[j] = arr[j + 1];
 					arr[j + 1] = temp1;
-
+					
 					int temp2 = arr_index[j];
 					arr_index[j] = arr_index[j + 1];
 					arr_index[j + 1] = temp2;
 				}
 			}
 		}
-
-		for(int i = 0, j = 0; i < top ;j++){
-			// 添加边界检查
-			if (j >= arr_index.length) {
-				break;
-			}
-			if(arr_index[j] != index){
-				recom[i] = arr_index[j];
-				i++;
+		
+		for(int i = 0; i < top; i++){
+			recom[i] = arr_index[i];
+		}
+		
+		return recom;
+	}
+	
+	/**
+	 * 获取兴趣主题下的TopK耗材
+	 * @param index 兴趣主题索引
+	 * @param top TopK数量
+	 * @return 耗材索引数组
+	 */
+	private int[] getTopSupply(int index, int top){
+		int[] recom = new int[top];
+		
+		double[] arr = new double[ldaModel.getPhi()[index].length];
+		int[] arr_index = new int[ldaModel.getPhi()[index].length];
+		
+		for(int i = 0; i < ldaModel.getPhi()[index].length; i++){
+			arr_index[i] = i;
+			arr[i] = ldaModel.getPhi()[index][i];
+		}
+		
+		for(int i = 0;i < arr.length;i++){
+			for(int j = 0; j < arr.length - i - 1;j++){
+				if(arr[j] < arr[j + 1]){
+					double temp1 = arr[j];
+					arr[j] = arr[j + 1];
+					arr[j + 1] = temp1;
+					
+					int temp2 = arr_index[j];
+					arr_index[j] = arr_index[j + 1];
+					arr_index[j + 1] = temp2;
+				}
 			}
 		}
-
+		
+		for(int i = 0; i < top; i++){
+			recom[i] = arr_index[i];
+		}
+		
 		return recom;
+	}
+	
+	// 供应相似度类
+	private static class SupplySimilarity {
+		int index;
+		double similarity;
+		
+		public SupplySimilarity(int index, double similarity) {
+			this.index = index;
+			this.similarity = similarity;
+		}
 	}
 }

@@ -12,7 +12,7 @@
 <style type="text/css">
 body {
 	font-family: Georgia, "Times New Roman", Times, serif;
-	font-size: big;
+	font-size: large;
 	margin: 5px;
 }
 
@@ -29,14 +29,15 @@ body {
 }
 
 .right {
+	font-size: large;
 	float: right;
-	width: 400px;
+	width: 200px; /* 调整宽度以匹配左侧面板 */
 	height: 100%;
 }
 
 .main {
-	margin-left: 200px;
-	margin-right: 200px;
+	margin-left: 210px; /* 稍微增加左侧边距以考虑滚动条 */
+	margin-right: 210px; /* 确保左右边距对称 */
 }
 
 #nav {
@@ -64,7 +65,7 @@ body {
 	text-decoration: none;
 	font-family: Arial, Helvetica, sans-serif;
 	padding: 7px 10px;
-	font-size: big;
+	font-size: large;
 	color: #FFF;
 	
 }
@@ -100,6 +101,8 @@ table {
 	border: thin solid black;
 	border-collapse: collapse;
 	background-color: white;
+	width: 100%; /* 确保表格宽度适应容器 */
+	max-width: 100%; /* 防止表格溢出 */
 }
 
 td, th {
@@ -108,35 +111,77 @@ td, th {
 }
 
 th.url, td.url {
-	width: 80px;
+	width: 120px; /* 增加URL列宽度以改善显示效果 */
 }
 
 .foot {
 	width: 100%;
-	position: relative;
-	bottom: 100px;
-	margin-top:150px;
+	clear: both; /* 清除浮动影响 */
+	margin-top: 30px;
+	padding-bottom: 20px;
 }
 
 .foot>.link {
 	text-align: center;
-	margin-bottom: 10px;
+	margin-bottom: 15px;
 }
 
 .foot>.link>a {
-	font-size: 12px;
-	font-family: "宋体";
-	text-decoration: underline;
+	font-size: 14px;
+	font-family: "Microsoft Yahei", sans-serif;
+	text-decoration: none;
+	color: #333;
+	padding: 0 10px;
 }
 
 .copyright {
 	text-align: center;
+	margin-top: 10px;
+	border-top: 1px solid #eee;
+	padding-top: 10px;
 }
 
 p, p>a {
-	font-size: 12px;
-	font-family: "宋体";
-	color: #666;
+	font-size: 13px;
+	font-family: "Microsoft Yahei", sans-serif;
+	color: #555;
+}
+
+/* 新增推荐表格样式 */
+.recommendation-table {
+	margin: 0 auto;
+	width: 100%; /* 使表格适应容器宽度 */
+	max-width: 100%; /* 防止表格溢出 */
+	box-shadow: 0 0 5px rgba(0,0,0,0.05);
+	padding: 0 10px; /* 添加一些内边距 */
+}
+
+.recommendation-table th {
+	background-color: #f5f5f5;
+}
+
+.recommendation-table td, 
+.recommendation-table th {
+	padding: 12px;
+	vertical-align: middle;
+}
+
+.recommendation-table .api-name {
+	font-weight: bold;
+	color: #222;
+}
+
+.recommendation-table .btn-recommend {
+	background-color: #4CAF50;
+	color: white;
+	border: none;
+	padding: 8px 16px;
+	cursor: pointer;
+	border-radius: 4px;
+}
+
+.recommendation-table .btn-recommend:hover {
+	background-color: #45a049;
 }
 </style>
 <script type="text/javascript" src='jquery-1.12.2.js'></script>
@@ -150,14 +195,9 @@ p, p>a {
 			$('#mashupTable').css('display', 'none');
 		}
 	}
-	var chain = [];
-	
 	function nextRecommand(id){
-		chain.push(id);
-		var url = './nextSearch?idList=' + chain;
-		//alert(url);
-		window.open(url);
-		//$.post(url);
+		// 跳转到继续推荐页面
+		window.location.href = './nextSearch?id=' + id;
 	}
 </script>
 </head>
@@ -181,64 +221,60 @@ p, p>a {
 				<div><p>&nbsp</p></div>
 				
 				<%
-					Object obj_r = request.getAttribute("result");
-					ArrayList<API> result = (ArrayList<API>) obj_r;
-
-					Object obj_c = request.getAttribute("chain");
-					ArrayList<API> chain = (ArrayList<API>) obj_c;
+					// 获取推荐结果
+					ArrayList<API> recommandSupplyList = (ArrayList<API>) request.getAttribute("recommandSupplyList");
+					API currentSupply = (API) request.getAttribute("currentSupply");
 					
-					for(int i = 0; i < chain.size(); i++){
-				%>
-						
-						<script type="text/javascript">
-							chain.push(<%=chain.get(i).getN_ID() %>);
-						</script>
-				<%
-					}
-					
-					for(int i = 0; i < result.size(); i++){
-						API resApi = result.get(i);
+					// 显示当前耗材信息
+					if(currentSupply != null) {
 				%>
 				<div style="display:block">
-				<div><h2>推荐结果<%=(i + 1) %></h2></div>
-					<table class='apiTable'>
-						<tr>
-							<%
-								for(int j = 0; j < chain.size(); j++){
-									
-									
-							%>
-								<th>已有Api名称</th>
-							<%
-								}
-							%>
-							
-							<th>推荐Api名称</th>
-							<th>推荐</th>
-						</tr>
-						<tr>
-							<%
-								for(int n = 0; n < chain.size(); n++){
-									API api = chain.get(n);
-							%>
-								<td><a href='##'><%=api.getC_NAME() %></a></td>
-							<%
-								}
-							%>
-							<td><a href='##'><%=resApi.getC_NAME() %></a></td>
-							<td><input type='button' value='继续推荐' onclick="nextRecommand(<%=resApi.getN_ID() %>);"/></td>
-						</tr>
-					</table>
+					<div><h2>当前耗材: <%= currentSupply.getC_NAME() %></h2></div>
 				</div>
-
-				<% 
-				
+				<%
 					}
 				%>
-				
-			</div>
-		</div>
+		
+	</div>
+</div>
 
+	</div>
+	<div class="foot">
+		<table class='apiTable'>
+			<thead>
+				<tr>
+					<th>推荐耗材</th>
+					<th>操作</th>
+				</tr>
+			</thead>
+			<tbody>
+				<%
+					if(recommandSupplyList != null && !recommandSupplyList.isEmpty()) {
+						for(API recommandApi : recommandSupplyList) {
+				%>
+				<tr>
+					<td>
+						<a href='<%= recommandApi.getC_URL() != null && !recommandApi.getC_URL().isEmpty() ? recommandApi.getC_URL() : "#" %>' target="_blank">
+							<%= recommandApi.getC_NAME() %>
+						</a>
+					</td>
+					<td>
+						<input type='button' class="btn-recommend" value='继续推荐' 
+							onclick="nextRecommand(<%=recommandApi.getN_ID() %>);"/>
+					</td>
+				</tr>
+				<%
+						}
+					} else {
+				%>
+				<tr>
+					<td colspan="2">没有推荐结果</td>
+				</tr>
+				<%
+					}
+				%>
+			</tbody>
+		</table>
 	</div>
 	<div class="foot">
 		<div class="copyright">

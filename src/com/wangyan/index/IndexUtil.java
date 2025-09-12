@@ -1,7 +1,5 @@
 package com.wangyan.index;
 
-import static org.junit.Assert.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,27 +12,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 
 import dbhelper.DBSearch;
 import javabean.API;
-import javabean.Mashup;
-
-
+import model.LDAModel;
 
 public class IndexUtil {
 	public void createIndex(Map<Integer, String> mashupIndex_Name){
@@ -212,7 +201,7 @@ public class IndexUtil {
 			int apiIndex = entry.getKey();
 			if(apiIndex_ID.containsKey(apiIndex)) {
 				int apiId = apiIndex_ID.get(apiIndex);
-				apiList.add(dbSearch.getApiById(apiId));
+				apiList.add(dbSearch.getSupplyById(apiId));
 				count++;
 			}
 		}
@@ -238,6 +227,87 @@ public class IndexUtil {
 
 		return interest;
 	}
+	// 在IndexUtil类中添加以下方法
+	/**
+	 * 为指定mashup推荐API，每个兴趣主题推荐一个最相关的API
+	 * @param mashupIndex mashup索引
+	 * @param interestCount 兴趣主题数量
+	 * @param ldaModel 已训练的LDA模型
+	 * @param apiIndex_ID API索引到ID的映射
+	 * @return 推荐的API列表，每个兴趣一个API
+	 */
+	public List<API> recommendOneAPIPerInterestByLDAModel(Integer mashupIndex, int interestCount,
+												LDAModel ldaModel, Map<Integer, Integer> apiIndex_ID) {
+		List<API> recommendedAPIs = new ArrayList<>();
+
+		// 检查mashupIndex是否为null
+		if (mashupIndex == null) {
+			System.out.println("Mashup索引为空");
+			return recommendedAPIs;
+		}
+
+		// 确保mashupIndex在有效范围内
+		if (mashupIndex >= ldaModel.getDiseaseAmount()) {
+			System.out.println("Mashup索引超出范围: " + mashupIndex);
+			return recommendedAPIs;
+		}
+
+		// 获取用户对各兴趣主题的概率
+		Double[] interestProbs = new Double[ldaModel.getInterestAmount()];
+		for (int k = 0; k < ldaModel.getInterestAmount(); k++) {
+			interestProbs[k] = ldaModel.getTheta()[mashupIndex][k];
+		}
+
+		// 对兴趣主题按概率排序
+		List<Integer> interestIndices = new ArrayList<>();
+		for (int i = 0; i < ldaModel.getInterestAmount(); i++) {
+			interestIndices.add(i);
+		}
+
+		Collections.sort(interestIndices, new Comparator<Integer>() {
+			@Override
+			public int compare(Integer o1, Integer o2) {
+				double diff = interestProbs[o2] - interestProbs[o1]; // 降序排列
+				if (diff > 0) return -1;
+				else if (diff < 0) return 1;
+				else return 0;
+			}
+		});
+
+		DBSearch dbSearch = new DBSearch();
+
+		// 为每个top interest推荐一个最相关的API
+		Set<Integer> selectedAPIs = new HashSet<>(); // 避免重复推荐同一个API
+
+		for (int i = 0; i < Math.min(interestCount, ldaModel.getInterestAmount()); i++) {
+			int interestId = interestIndices.get(i);
+
+			// 在该兴趣主题中找出最相关的API
+			double maxProb = -1;
+			int bestAPIIndex = -1;
+
+			for (int j = 0; j < ldaModel.getSupplyAmount(); j++) {
+				// 确保不重复推荐已选的API
+				if (!selectedAPIs.contains(j) && ldaModel.getPhi()[interestId][j] > maxProb) {
+					maxProb = ldaModel.getPhi()[interestId][j];
+					bestAPIIndex = j;
+				}
+			}
+
+			// 将API索引转换为实际API对象
+			if (bestAPIIndex != -1 && apiIndex_ID.containsKey(bestAPIIndex)) {
+				int apiId = apiIndex_ID.get(bestAPIIndex);
+				API api = dbSearch.getSupplyById(apiId);
+				if (api != null && api.getN_ID() > 0) {
+					recommendedAPIs.add(api);
+					selectedAPIs.add(bestAPIIndex); // 记录已选API避免重复
+				}
+			}
+		}
+
+		return recommendedAPIs;
+	}
+
 	// 在IndexUtil类中添加以下方法
 	/**
 	 * 为指定mashup推荐API，每个兴趣主题推荐一个最相关的API
@@ -278,7 +348,7 @@ public class IndexUtil {
 				for (int apiIndex : apiListForInterest) {
 					if (!selectedAPIs.contains(apiIndex) && apiIndex_ID.containsKey(apiIndex)) {
 						int apiId = apiIndex_ID.get(apiIndex);
-						API api = dbSearch.getApiById(apiId);
+						API api = dbSearch.getSupplyById(apiId);
 						if (api != null && api.getN_ID() > 0) {
 							recommendedAPIs.add(api);
 							selectedAPIs.add(apiIndex); // 记录已选API避免重复

@@ -25,7 +25,7 @@ public class Search {
 	
 	public static ArrayList<API> searchMashupApiRelation(int mashupId){
 		DBSearch dbs = new DBSearch();
-		ArrayList<API> list = dbs.getMashupApiRelation(mashupId);
+		ArrayList<API> list = dbs.getDiseaseSupplyRelation(mashupId);
 		return list;
 	}
 }

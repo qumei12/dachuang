@@ -5,7 +5,7 @@
 <html>
 <head>
 	<meta charset="UTF-8">
-	<title>Mashup API推荐结果</title>
+	<title>病种耗材推荐结果</title>
 	<style type="text/css">
 		body {
 			font-family: Arial, sans-serif;
@@ -31,7 +31,7 @@
 		tr:nth-child(even) {
 			background-color: #f9f9f9;
 		}
-		.mashup-info {
+		.disease-info {
 			background-color: #e7f3ff;
 			padding: 15px;
 			border-radius: 5px;
@@ -65,11 +65,11 @@
 		}
 	</style>
 	<script type="text/javascript">
-		function continueRecommendation(apiId, element, mashupIndex, interestId) {
-			// 跳转到继续推荐页面，传递选中的API ID、原始Mashup索引和兴趣主题ID
-			var url = "nextSearch?id=" + apiId;
-			if (mashupIndex !== undefined && mashupIndex >= 0) {
-				url += "&mashupIndex=" + mashupIndex;
+		function continueRecommendation(supplyId, element, diseaseIndex, interestId) {
+			// 跳转到继续推荐页面，传递选中的耗材ID、原始病种索引和兴趣主题ID
+			var url = "nextSearch?id=" + supplyId;
+			if (diseaseIndex !== undefined && diseaseIndex >= 0) {
+				url += "&diseaseIndex=" + diseaseIndex;
 				url += "&interestId=" + interestId;
 			}
 			window.location.href = url;
@@ -78,71 +78,71 @@
 </head>
 <body>
 <div class="container">
-	<h2>Mashup API推荐结果</h2>
+	<h2>病种耗材推荐结果</h2>
 
 	<%
-		Mashup mashup = (Mashup) request.getAttribute("mashup");
-		ArrayList<API> apiList = (ArrayList<API>) request.getAttribute("apiList");
-		Integer mashupIndex = (Integer) request.getAttribute("mashupIndex");
-		Map<Integer, Integer> apiToInterestMap = (Map<Integer, Integer>) request.getAttribute("apiToInterestMap");
+		Mashup disease = (Mashup) request.getAttribute("disease");
+		ArrayList<API> supplyList = (ArrayList<API>) request.getAttribute("supplyList");
+		Integer diseaseIndex = (Integer) request.getAttribute("diseaseIndex");
+		Map<Integer, Integer> supplyToInterestMap = (Map<Integer, Integer>) request.getAttribute("supplyToInterestMap");
 	%>
 
-	<% if (mashup != null) { %>
-	<div class="mashup-info">
-		<h3>Mashup信息</h3>
-		<p><strong>名称:</strong> <%= mashup.getC_NAME() %></p>
-		<p><strong>描述:</strong> <%= mashup.getC_DESCRIPTION() != null ? mashup.getC_DESCRIPTION() : "无描述" %></p>
-		<% if (mashup.getC_URL() != null && !mashup.getC_URL().isEmpty()) { %>
-		<p><strong>网址:</strong> <a href="<%= mashup.getC_URL() %>" target="_blank"><%= mashup.getC_URL() %></a></p>
+	<% if (disease != null) { %>
+	<div class="disease-info">
+		<h3>病种信息</h3>
+		<p><strong>名称:</strong> <%= disease.getC_NAME() %></p>
+		<p><strong>描述:</strong> <%= disease.getC_DESCRIPTION() != null ? disease.getC_DESCRIPTION() : "无描述" %></p>
+		<% if (disease.getC_URL() != null && !disease.getC_URL().isEmpty()) { %>
+		<p><strong>网址:</strong> <a href="<%= disease.getC_URL() %>" target="_blank"><%= disease.getC_URL() %></a></p>
 		<% } %>
 	</div>
 	<% } %>
 
-	<h3>关联的API列表</h3>
-	<% if (apiList != null && !apiList.isEmpty()) { %>
+	<h3>关联的耗材列表</h3>
+	<% if (supplyList != null && !supplyList.isEmpty()) { %>
 	<table>
 		<tr>
 			<th>ID</th>
-			<th>API名称</th>
+			<th>耗材名称</th>
 			<th>描述</th>
 			<th>网址</th>
 			<th class="action-column">操作</th>
 		</tr>
-		<% for (API api : apiList) { %>
+		<% for (API supply : supplyList) { %>
 		<tr>
-			<td><%= api.getN_ID() %></td>
-			<td><%= api.getC_NAME() %></td>
-			<td><%= api.getC_DESCRIPTION() != null ? api.getC_DESCRIPTION() : "无描述" %></td>
+			<td><%= supply.getN_ID() %></td>
+			<td><%= supply.getC_NAME() %></td>
+			<td><%= supply.getC_DESCRIPTION() != null ? supply.getC_DESCRIPTION() : "无描述" %></td>
 			<td>
-				<% if (api.getC_URL() != null && !api.getC_URL().isEmpty()) { %>
-				<a href="<%= api.getC_URL() %>" target="_blank">访问</a>
+				<% if (supply.getC_URL() != null && !supply.getC_URL().isEmpty()) { %>
+				<a href="<%= supply.getC_URL() %>" target="_blank">访问</a>
 				<% } else { %>
 				无网址
 				<% } %>
 			</td>
 			<td class="action-column">
 				<%
-					// 查找API对应的索引和兴趣主题
-					int apiIndex = -1;
+					// 查找耗材对应的索引和兴趣主题
+					int supplyIndex = -1;
 					int interestId = -1;
-					// 通过遍历apiIndex_ID映射来查找API索引
-					for (Map.Entry<Integer, Integer> entry : ((Map<Integer, Integer>) request.getAttribute("apiIndex_ID")).entrySet()) {
-						if (entry.getValue() == api.getN_ID()) {
-							apiIndex = entry.getKey();
+					// 通过遍历supplyIndex_ID映射来查找耗材索引
+					for (Map.Entry<Integer, Integer> entry : ((Map<Integer, Integer>) request.getAttribute("supplyIndex_ID")).entrySet()) {
+						if (entry.getValue() == supply.getN_ID()) {
+							supplyIndex = entry.getKey();
 							break;
 						}
 					}
-					if (apiToInterestMap != null && apiIndex >= 0 && apiToInterestMap.containsKey(apiIndex)) {
-						interestId = apiToInterestMap.get(apiIndex);
+					if (supplyToInterestMap != null && supplyIndex >= 0 && supplyToInterestMap.containsKey(supplyIndex)) {
+						interestId = supplyToInterestMap.get(supplyIndex);
 					}
 				%>
-				<button class="continue-button" onclick="continueRecommendation(<%= api.getN_ID() %>, this, <%= mashupIndex != null ? mashupIndex : -1 %>, <%= interestId %>)">继续推荐</button>
+				<button class="continue-button" onclick="continueRecommendation(<%= supply.getN_ID() %>, this, <%= diseaseIndex != null ? diseaseIndex : -1 %>, <%= interestId %>)">继续推荐</button>
 			</td>
 		</tr>
 		<% } %>
 	</table>
 	<% } else { %>
-	<p>该mashup没有关联的API。</p>
+	<p>该病种没有关联的耗材。</p>
 	<% } %>
 
 	<div class="back-link">

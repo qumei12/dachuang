@@ -97,7 +97,7 @@ public class DBSearch {
 		return mashupList;
 	}
 
-	public ArrayList<API> getMashupApiRelation(int mashupId) {
+	public ArrayList<API> getDiseaseSupplyRelation(int diseaseId) {
 		Connection connection = DBHelper.getConnection();
 
 		Statement statement;
@@ -107,7 +107,8 @@ public class DBSearch {
 		try {
 			statement = connection.createStatement();
 
-			String sql = "select * from `tb_api` where n_mashup_id=" + mashupId + " order by N_ID ";
+			String sql = "select * from `tb_api` where n_mashup_id=" + diseaseId + " order by N_ID ";
+			System.out.println("执行查询关联耗材: " + sql); // 添加调试信息
 
 			ResultSet rs = statement.executeQuery(sql);
 
@@ -122,6 +123,8 @@ public class DBSearch {
 
 				list.add(api);
 			}
+			
+			System.out.println("查询结果数量: " + list.size() + " (病种ID: " + diseaseId + ")"); // 添加调试信息
 
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -134,7 +137,6 @@ public class DBSearch {
 				e.printStackTrace();
 			}
 		}
-
 		return list;
 	}
 
@@ -170,7 +172,7 @@ public class DBSearch {
 		return map;
 	}
 
-	public API getApiById(int id) {
+	public API getSupplyById(int id) {
 		Connection connection = DBHelper.getConnection();
 
 		Statement statement = null;
@@ -281,6 +283,53 @@ public class DBSearch {
 
 		return mashup.getN_ID() != -1 ? mashup : null;
 	}
+	
+	/**
+	 * 根据病种名称模糊搜索病种
+	 * @param name 病种名称关键词
+	 * @return 病种列表
+	 */
+	public ArrayList<Mashup> getDiseaseByNameFuzzy(String name) {
+		Connection connection = DBHelper.getConnection();
+		PreparedStatement statement = null;
+		ArrayList<Mashup> diseases = new ArrayList<Mashup>();
+
+		try {
+			// 使用PreparedStatement防止SQL注入
+			String sql = "SELECT * FROM tb_mashup WHERE C_NAME LIKE ?";
+			statement = connection.prepareStatement(sql);
+			statement.setString(1, "%" + name + "%");
+
+			ResultSet rs = statement.executeQuery();
+
+			while (rs.next()) {
+				Mashup disease = new Mashup();
+				disease.setN_ID(rs.getInt(1));
+				disease.setC_NAME(rs.getString(2));
+				disease.setC_DESCRIPTION(rs.getString(3));
+				disease.setC_URL(rs.getString(4));
+				disease.setD_DATE(rs.getDate(5));
+				diseases.add(disease);
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (statement != null) {
+					statement.close();
+				}
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return diseases;
+	}
+
 	/**
 	 * 根据API索引获取API ID
 	 * @param index API索引
@@ -311,6 +360,38 @@ public class DBSearch {
 		}
 
 		return apiId;
+	}
+
+	/**
+	 * 根据耗材索引获取耗材 ID
+	 * @param index 耗材索引
+	 * @return 耗材 ID
+	 */
+	public int getSupplyIdByIndex(int index) {
+		Connection connection = DBHelper.getConnection();
+		Statement statement = null;
+		int supplyId = -1;
+
+		try {
+			statement = connection.createStatement();
+			String sql = "select n_id from `tb_api` order by n_id limit " + index + ",1";
+			ResultSet rs = statement.executeQuery(sql);
+
+			if (rs.next()) {
+				supplyId = rs.getInt(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (statement != null) statement.close();
+				if (connection != null) connection.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return supplyId;
 	}
 
 

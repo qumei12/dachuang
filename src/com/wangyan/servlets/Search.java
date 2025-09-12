@@ -31,26 +31,26 @@ public class Search extends HttpServlet {
 	LDAModel ldaModel = null;
 	IndexUtil iu = null;
 
-	Map<Integer, Integer> apiSequ = null;
-	Map<Integer, List<Integer>> mashupWordsBag = null;
-	Map<Integer, List<Integer>> apiWordsBag = null;
+	Map<Integer, Integer> supplySequ = null;
+	Map<Integer, List<Integer>> diseaseWordsBag = null;
+	Map<Integer, List<Integer>> supplyWordsBag = null;
 
-	Map<Integer, Integer> mashupIndex_ID = null;
-	Map<Integer, String> mashupIndex_Name = null;
+	Map<Integer, Integer> diseaseIndex_ID = null;
+	Map<Integer, String> diseaseIndex_Name = null;
 
-	Map<Integer, Integer> apiIndex_ID = null;
-	Map<Integer, String> apiIndex_Name = null;
+	Map<Integer, Integer> supplyIndex_ID = null;
+	Map<Integer, String> supplyIndex_Name = null;
 
-	// 添加预设topK配置（用于API推荐）
-	private static final Map<String, Integer> MASHUP_TOPK_CONFIG = new HashMap<String, Integer>();
+	// 添加预设topK配置（用于耗材推荐）
+	private static final Map<String, Integer> DISEASE_TOPK_CONFIG = new HashMap<String, Integer>();
 
 	// 静态初始化块
 	static {
-		MASHUP_TOPK_CONFIG.put("Bing Maps Mashup Tilt Shift", 5);
-		MASHUP_TOPK_CONFIG.put("Twitter", 3);
-		MASHUP_TOPK_CONFIG.put("Google Maps", 7);
-		MASHUP_TOPK_CONFIG.put("YouTube", 4);
-		MASHUP_TOPK_CONFIG.put("Flickr", 6);
+		DISEASE_TOPK_CONFIG.put("Bing Maps Mashup Tilt Shift", 5);
+		DISEASE_TOPK_CONFIG.put("Twitter", 3);
+		DISEASE_TOPK_CONFIG.put("Google Maps", 7);
+		DISEASE_TOPK_CONFIG.put("YouTube", 4);
+		DISEASE_TOPK_CONFIG.put("Flickr", 6);
 		// 可以继续添加更多预设
 	}
 
@@ -69,142 +69,156 @@ public class Search extends HttpServlet {
 			//System.out.println("2 Learning and Saving the model ...");
 			ldaModel.inferenceModel();
 			//System.out.println("LDAModel creation finished!");
-			mashupWordsBag = ldaModel.getMashupWordsBag();
-			apiWordsBag = ldaModel.getAPIWordsBag();
+			diseaseWordsBag = ldaModel.getMashupWordsBag();
+			supplyWordsBag = ldaModel.getAPIWordsBag();
 			//System.out.println("词袋子生成完毕");
 		}
 
-		mashupIndex_ID = new HashMap<>();
-		mashupIndex_Name = new HashMap<>();
-		new MashupMap().setMap(mashupIndex_ID, mashupIndex_Name);
+		diseaseIndex_ID = new HashMap<>();
+		diseaseIndex_Name = new HashMap<>();
+		new MashupMap().setMap(diseaseIndex_ID, diseaseIndex_Name);
 
-		apiIndex_ID = new HashMap<>();
-		apiIndex_Name = new HashMap<>();
-		new APIMap().setMap(apiIndex_ID, apiIndex_Name);
+		supplyIndex_ID = new HashMap<>();
+		supplyIndex_Name = new HashMap<>();
+		new APIMap().setMap(supplyIndex_ID, supplyIndex_Name);
 
 		iu = new IndexUtil();
-		iu.createIndex(mashupIndex_Name);
+		iu.createIndex(diseaseIndex_Name);
 	}
 
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		String mashupName = request.getParameter("search");
-		System.out.println("精确搜索mashup名称: " + mashupName);
+		String diseaseName = request.getParameter("search");
+		System.out.println("精确搜索病种名称: " + diseaseName);
 
 		try {
 			// 检查参数
-			if (mashupName == null || mashupName.trim().isEmpty()) {
-				request.setAttribute("error", "请输入mashup名称");
+			if (diseaseName == null || diseaseName.trim().isEmpty()) {
+				request.setAttribute("error", "请输入病种名称");
 				request.getRequestDispatcher("error.jsp").forward(request, response);
 				return;
 			}
 
-			// 首先验证mashup是否存在（精确匹配）
-			DBSearch dbSearch = new DBSearch();
-			Mashup mashup = dbSearch.getMashupByName(mashupName.trim());
-
-			if (mashup == null || mashup.getN_ID() <= 0) {
-				request.setAttribute("error", "未找到名称为 '" + mashupName + "' 的mashup");
+			// 首先验证病种是否存在（精确匹配）
+			DBSearch dbs = new DBSearch();
+			Mashup disease = dbs.getMashupByName(diseaseName);
+			
+			if (disease == null) {
+				// 如果精确匹配失败，尝试模糊搜索
+				System.out.println("未找到精确匹配的病种，尝试模糊搜索...");
 				request.getRequestDispatcher("notFind.jsp").forward(request, response);
 				return;
 			}
-
-			// 确定使用的topK值
-			int dynamicTopK = determineTopKForSearch(mashupName);
-			System.out.println("使用TopK值: " + dynamicTopK);
-
-			// 使用新的推荐逻辑：为每个兴趣推荐一个API
-			List<API> apiList = new ArrayList<>();
-
-			// 获取mashup在模型中的索引
-			Integer mashupIndex = null;
-			for (Map.Entry<Integer, Integer> entry : mashupIndex_ID.entrySet()) {
-				if (entry.getValue() == mashup.getN_ID()) {
-					mashupIndex = entry.getKey();
+			
+			// 获取病种索引
+			Integer diseaseIndex = null;
+			for (Map.Entry<Integer, String> entry : diseaseIndex_Name.entrySet()) {
+				if (entry.getValue().equals(diseaseName)) {
+					diseaseIndex = entry.getKey();
 					break;
 				}
 			}
-
-			// 使用新的推荐方法（每个兴趣推荐一个API）
-			if (mashupIndex != null) {
-				System.out.println("开始为Mashup '" + mashupName + "' (索引: " + mashupIndex + ") 生成推荐...");
-
-				// 调用LDAModel的新方法
-				List<Integer> recommendedAPIIndices = ldaModel.recommandOneAPIPerInterest(mashupIndex, dynamicTopK);
-
-				// 输出识别出的兴趣主题
-				System.out.println("识别出的Top " + dynamicTopK + " 个兴趣主题:");
-				// 获取用户对各个兴趣主题的概率并排序
-				Double[] interestProbs = new Double[ldaModel.getInterestAmount()];
-				for (int k = 0; k < ldaModel.getInterestAmount(); k++) {
-					interestProbs[k] = ldaModel.getTheta()[mashupIndex][k];
-				}
-
-				List<Integer> interestIndices = new ArrayList<>();
-				for (int i = 0; i < ldaModel.getInterestAmount(); i++) {
-					interestIndices.add(i);
-				}
-
-				Collections.sort(interestIndices, new Comparator<Integer>() {
-					@Override
-					public int compare(Integer o1, Integer o2) {
-						if (interestProbs[o1] > interestProbs[o2]) return -1;
-						else if (interestProbs[o1] < interestProbs[o2]) return 1;
-						else return 0;
-					}
-				});
-
-				for (int i = 0; i < Math.min(dynamicTopK, ldaModel.getInterestAmount()); i++) {
-					int interestId = interestIndices.get(i);
-					System.out.println("  兴趣主题 " + interestId + " - 概率: " + String.format("%.6f", interestProbs[interestId]));
-				}
-
-				// 输出为每个兴趣主题推荐的API
-				System.out.println("为每个兴趣主题推荐的API:");
-				// 创建一个映射来存储API索引与其对应的主要兴趣主题
-				Map<Integer, Integer> apiToInterestMap = new HashMap<>();
-				for (int i = 0; i < recommendedAPIIndices.size(); i++) {
-					Integer apiIndex = recommendedAPIIndices.get(i);
-					if (apiIndex_ID.containsKey(apiIndex)) {
-						int apiId = apiIndex_ID.get(apiIndex);
-						API api = dbSearch.getApiById(apiId);
-						if (api != null && api.getN_ID() > 0) {
-							int interestId = interestIndices.get(i);
-							apiToInterestMap.put(apiIndex, interestId);
-							System.out.println("  推荐API " + (i+1) + ": " + api.getC_NAME() +
-									" (ID: " + api.getN_ID() + ", 索引: " + apiIndex + 
-									", 兴趣主题: " + interestId + ")");
-						}
-					}
-				}
-
-				// 将API索引转换为实际的API对象
-				for (Integer apiIndex : recommendedAPIIndices) {
-					if (apiIndex_ID.containsKey(apiIndex)) {
-						int apiId = apiIndex_ID.get(apiIndex);
-						API api = dbSearch.getApiById(apiId);
-						if (api != null && api.getN_ID() > 0) {
-							apiList.add(api);
-						}
-					}
-				}
-
-				System.out.println("为mashup推荐了 " + apiList.size() + " 个API（每个兴趣一个）");
-				// 将原始Mashup索引和API到兴趣主题的映射传递给前端
-				request.setAttribute("mashupIndex", mashupIndex);
-				request.setAttribute("apiToInterestMap", apiToInterestMap);
+			
+			if (diseaseIndex == null) {
+				request.setAttribute("error", "未找到病种索引");
+				request.getRequestDispatcher("error.jsp").forward(request, response);
+				return;
 			}
-
-			// 设置请求属性
-			request.setAttribute("mashup", mashup);  // 传递找到的mashup对象
-			request.setAttribute("apiList", apiList);
-			request.setAttribute("apiIndex_ID", apiIndex_ID); // 传递API索引到ID的映射
-
-			if(apiList.size() == 0){
-				request.getRequestDispatcher("notFind.jsp").forward(request, response);
-			} else {
+			
+			// 使用LDA模型为病种推荐耗材，而不是直接从数据库获取关联耗材
+			// 获取该病种的预设topK值
+			int dynamicTopK = DISEASE_TOPK_CONFIG.getOrDefault(diseaseName, DEFAULT_TOPK);
+			
+			// 使用IndexUtil的推荐方法进行推荐（使用LDA模型）
+			List<API> recommandSupplyList = iu.recommendOneAPIPerInterestByLDAModel(
+				diseaseIndex, 
+				dynamicTopK,
+				ldaModel,
+				supplyIndex_ID
+			);
+			
+			// 如果没有推荐到耗材
+			if (recommandSupplyList == null || recommandSupplyList.isEmpty()) {
+				request.setAttribute("disease", disease);
+				request.setAttribute("supplyList", new ArrayList<API>());
+				request.setAttribute("diseaseIndex", diseaseIndex);
 				request.getRequestDispatcher("searchResult.jsp").forward(request, response);
+				return;
+			}
+			
+			// 将推荐结果转换为ArrayList
+			ArrayList<API> limitedSupplyList = new ArrayList<>(recommandSupplyList);
+			
+			// 创建耗材索引到兴趣主题的映射
+			Map<Integer, Integer> supplyToInterestMap = new HashMap<>();
+			
+			// 获取当前病种的topK兴趣主题
+			Double[] interestProbs = new Double[ldaModel.getInterestAmount()];
+			for (int k = 0; k < ldaModel.getInterestAmount(); k++) {
+				interestProbs[k] = ldaModel.getTheta()[diseaseIndex][k];
 			}
 
+			List<Integer> interestIndices = new ArrayList<>();
+			for (int i = 0; i < ldaModel.getInterestAmount(); i++) {
+				interestIndices.add(i);
+			}
+
+			// 按照概率排序
+			interestIndices.sort((o1, o2) -> {
+				if (interestProbs[o1] > interestProbs[o2]) return -1;
+				else if (interestProbs[o1] < interestProbs[o2]) return 1;
+				else return 0;
+			});
+			
+			System.out.println("病种 \"" + diseaseName + "\" 的Top " + dynamicTopK + " 个兴趣主题:");
+			for (int i = 0; i < Math.min(dynamicTopK, ldaModel.getInterestAmount()); i++) {
+				int interestId = interestIndices.get(i);
+				System.out.println("  兴趣主题 " + interestId + " - 概率: " + String.format("%.6f", interestProbs[interestId]));
+			}
+			
+			// 为每个推荐的耗材确定其主要兴趣主题
+			for (API supply : limitedSupplyList) {
+				// 通过supplyIndex_ID查找耗材索引
+				Integer supplyIndex = null;
+				for (Map.Entry<Integer, Integer> entry : supplyIndex_ID.entrySet()) {
+					if (entry.getValue().equals(supply.getN_ID())) {
+						supplyIndex = entry.getKey();
+						break;
+					}
+				}
+				
+				if (supplyIndex != null) {
+					// 在病种的topK兴趣主题中查找该耗材所属的主要兴趣主题
+					int mainInterestId = -1;
+					double maxProb = -1;
+					
+					for (int i = 0; i < Math.min(dynamicTopK, ldaModel.getInterestAmount()); i++) {
+						int interestId = interestIndices.get(i);
+						if (supplyIndex < ldaModel.getPhi()[interestId].length && 
+							ldaModel.getPhi()[interestId][supplyIndex] > maxProb) {
+							maxProb = ldaModel.getPhi()[interestId][supplyIndex];
+							mainInterestId = interestId;
+						}
+					}
+					
+					if (mainInterestId != -1) {
+						supplyToInterestMap.put(supplyIndex, mainInterestId);
+						System.out.println("  耗材 \"" + supply.getC_NAME() + "\" 属于兴趣主题 " + mainInterestId);
+					}
+				}
+			}
+			
+			// 传递数据到JSP页面
+			request.setAttribute("disease", disease);
+			request.setAttribute("supplyList", limitedSupplyList);
+			request.setAttribute("diseaseIndex", diseaseIndex);
+			request.setAttribute("supplyToInterestMap", supplyToInterestMap);
+			request.setAttribute("diseaseIndex_ID", diseaseIndex_ID);
+			request.setAttribute("diseaseIndex_Name", diseaseIndex_Name);
+			request.setAttribute("supplyIndex_ID", supplyIndex_ID);
+			request.setAttribute("supplyIndex_Name", supplyIndex_Name);
+			
+			request.getRequestDispatcher("searchResult.jsp").forward(request, response);
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			request.setAttribute("error", "系统错误: " + e.getMessage());
@@ -212,29 +226,69 @@ public class Search extends HttpServlet {
 		}
 	}
 
-
 	/**
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		doGet(request, response);
+		request.setCharacterEncoding("UTF-8");
+		String diseaseName = request.getParameter("search");
+		
+		System.out.println("执行病种搜索: " + diseaseName);
+		try {
+			if(diseaseName == null || diseaseName.trim().isEmpty()) {
+				request.setAttribute("error", "请输入搜索关键词");
+				request.getRequestDispatcher("error.jsp").forward(request, response);
+				return;
+			}
+			
+			// 首先尝试精确匹配
+			DBSearch dbs = new DBSearch();
+			Mashup disease = dbs.getMashupByName(diseaseName);
+			
+			if (disease != null && disease.getN_ID() != -1) {
+				// 精确匹配成功，重定向到 doGet 方法处理
+				String redirectURL = "./Search?search=" + java.net.URLEncoder.encode(diseaseName, "UTF-8");
+				response.sendRedirect(redirectURL);
+				return;
+			}
+			
+			// 如果精确匹配失败，执行模糊搜索
+			System.out.println("精确匹配失败，执行病种名称模糊搜索: " + diseaseName);
+			ArrayList<Mashup> diseases = dbs.getDiseaseByNameFuzzy(diseaseName);
+			
+			if(diseases == null || diseases.isEmpty()) {
+				System.out.println("未检索到相关病种");
+				request.getRequestDispatcher("notFind.jsp").forward(request, response);
+				return;
+			}
+			
+			// 传递搜索结果到JSP页面
+			request.setAttribute("diseases", diseases);
+			request.setAttribute("keyword", diseaseName);
+			request.getRequestDispatcher("searchResult.jsp").forward(request, response);
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "系统错误: " + e.getMessage());
+			request.getRequestDispatcher("error.jsp").forward(request, response);
+		}
 	}
-
-	// 根据mashup名称确定topK值
-	private int determineTopKForSearch(String mashupName) {
-		if (mashupName == null || mashupName.trim().isEmpty()) {
+	
+	// 根据病种名称确定topK值
+	private int determineTopKForSearch(String diseaseName) {
+		if (diseaseName == null || diseaseName.trim().isEmpty()) {
 			return DEFAULT_TOPK;
 		}
 
-		// 根据mashup名称匹配预设的topK值（精确匹配）
-		for (Map.Entry<String, Integer> entry : MASHUP_TOPK_CONFIG.entrySet()) {
-			if (mashupName.equalsIgnoreCase(entry.getKey())) {
-				System.out.println("匹配到预设Mashup: " + entry.getKey() + " -> TopK: " + entry.getValue());
-				return entry.getValue();
-			}
+		// 根据病种名称匹配预设的topK值（精确匹配）
+		Integer presetTopK = DISEASE_TOPK_CONFIG.get(diseaseName);
+		if (presetTopK != null) {
+			System.out.println("匹配到预设病种: " + diseaseName + " -> TopK: " + presetTopK);
+			return presetTopK;
 		}
 
 		// 如果没有匹配到预设值，返回默认值
+		System.out.println("未匹配到预设病种: " + diseaseName + " -> 使用默认TopK: " + DEFAULT_TOPK);
 		return DEFAULT_TOPK;
 	}
 
