@@ -106,6 +106,12 @@ public class nextSearch extends HttpServlet {
 			request.setAttribute("supplyIndex_ID", supplyIndex_ID);
 			request.setAttribute("supplyIndex_Name", supplyIndex_Name);
 			
+			// 传递被点击的供应索引
+			String clickedIndexStr = request.getParameter("clickedIndex");
+			if (clickedIndexStr != null && !clickedIndexStr.isEmpty()) {
+				request.setAttribute("clickedIndex", clickedIndexStr);
+			}
+			
 			request.getRequestDispatcher("nextSearchResult.jsp").forward(request, response);
 			
 		} catch(Exception e) {

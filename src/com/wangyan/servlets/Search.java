@@ -11,6 +11,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import com.wangyan.index.APIMap;
 import com.wangyan.index.IndexUtil;
@@ -88,8 +89,17 @@ public class Search extends HttpServlet {
 
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String diseaseName = request.getParameter("search");
+		String replaceSupplyIdStr = request.getParameter("replaceSupplyId");
+		String positionStr = request.getParameter("position");
+		
+		// 检查是否是替换耗材的请求
+		if (replaceSupplyIdStr != null && !replaceSupplyIdStr.isEmpty()) {
+			handleReplaceSupply(request, response, replaceSupplyIdStr, positionStr);
+			return;
+		}
+		
 		System.out.println("精确搜索病种名称: " + diseaseName);
-
+		
 		try {
 			// 检查参数
 			if (diseaseName == null || diseaseName.trim().isEmpty()) {
@@ -217,6 +227,25 @@ public class Search extends HttpServlet {
 			request.setAttribute("supplyIndex_ID", supplyIndex_ID);
 			request.setAttribute("supplyIndex_Name", supplyIndex_Name);
 			
+			// 保存数据到会话，供后续替换使用
+			HttpSession session = request.getSession();
+			
+			// 保存疾病信息
+			session.setAttribute("disease", disease);
+			
+			// 保存原始推荐耗材列表（不可变副本）
+			session.setAttribute("originalSupplyList", new ArrayList<>(limitedSupplyList));
+			
+			// 保存疾病索引
+			session.setAttribute("diseaseIndex", diseaseIndex);
+			
+			// 保存耗材到兴趣主题的映射（不可变副本）
+			session.setAttribute("supplyToInterestMap", new HashMap<>(supplyToInterestMap));
+			
+			// 记录调试信息
+			System.out.println("初始搜索时保存原始供应列表到会话");
+			System.out.println("原始供应列表大小: " + limitedSupplyList.size());
+			
 			request.getRequestDispatcher("searchResult.jsp").forward(request, response);
 			
 		} catch (Exception e) {
@@ -268,6 +297,141 @@ public class Search extends HttpServlet {
 			request.getRequestDispatcher("searchResult.jsp").forward(request, response);
 			
 		} catch(Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "系统错误: " + e.getMessage());
+			request.getRequestDispatcher("error.jsp").forward(request, response);
+		}
+	}
+	
+	/**
+	 * 处理替换耗材的请求
+	 * @param request
+	 * @param response
+	 * @param replaceSupplyIdStr 要替换的耗材ID
+	 * @param positionStr 要替换的位置
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	private void handleReplaceSupply(HttpServletRequest request, HttpServletResponse response, 
+			String replaceSupplyIdStr, String positionStr) 
+			throws ServletException, IOException {
+		try {
+			// 获取要替换的耗材
+			int replaceSupplyId = Integer.parseInt(replaceSupplyIdStr);
+			int position = 0; // 默认替换第一个位置
+			if (positionStr != null && !positionStr.isEmpty()) {
+				position = Integer.parseInt(positionStr);
+			}
+			
+			DBSearch dbs = new DBSearch();
+			API newSupply = dbs.getSupplyById(replaceSupplyId);
+			
+			// 创建包含所有原始耗材的supplyList，并替换指定位置的耗材
+			ArrayList<API> supplyList = new ArrayList<>();
+			
+			// 从会话中获取原始的supplyList
+			HttpSession session = request.getSession();
+			@SuppressWarnings("unchecked")
+			ArrayList<API> originalSupplyList = (ArrayList<API>) session.getAttribute("originalSupplyList");
+			
+			if (originalSupplyList != null && !originalSupplyList.isEmpty()) {
+				// 复制原始列表
+				for (int i = 0; i < originalSupplyList.size(); i++) {
+					if (i == position) {
+						// 替换指定位置的耗材
+						supplyList.add(newSupply);
+					} else {
+						// 保留其他位置的耗材
+						supplyList.add(originalSupplyList.get(i));
+					}
+				}
+				
+				// 如果位置超出原始列表范围，则添加到末尾
+				if (position >= originalSupplyList.size()) {
+					supplyList.add(newSupply);
+				}
+			} else {
+				// 如果没有原始列表，则只显示新耗材
+				supplyList.add(newSupply);
+			}
+			
+			// 设置必要的属性并转发到searchResult.jsp
+			request.setAttribute("supplyList", supplyList);
+			request.setAttribute("supplyIndex_ID", supplyIndex_ID);
+			request.setAttribute("supplyIndex_Name", supplyIndex_Name);
+			
+			// 设置其他必要属性（从会话中获取或使用默认值）
+			request.setAttribute("disease", session.getAttribute("disease"));
+			Integer diseaseIndex = (Integer) session.getAttribute("diseaseIndex");
+			request.setAttribute("diseaseIndex", diseaseIndex != null ? diseaseIndex : -1);
+			@SuppressWarnings("unchecked")
+			Map<Integer, Integer> supplyToInterestMap = (Map<Integer, Integer>) session.getAttribute("supplyToInterestMap");
+			request.setAttribute("supplyToInterestMap", supplyToInterestMap != null ? supplyToInterestMap : new HashMap<>());
+			request.setAttribute("diseaseIndex_ID", diseaseIndex_ID);
+			request.setAttribute("diseaseIndex_Name", diseaseIndex_Name);
+			
+			request.getRequestDispatcher("searchResult.jsp").forward(request, response);
+		} catch (Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "系统错误: " + e.getMessage());
+			request.getRequestDispatcher("error.jsp").forward(request, response);
+		}
+	}
+	
+	/**
+	 * 处理替换耗材的请求
+	 * @param request
+	 * @param response
+	 * @param replaceSupplyIdStr 要替换的耗材ID
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	private void handleReplaceSupply(HttpServletRequest request, HttpServletResponse response, 
+			String replaceSupplyIdStr) 
+			throws ServletException, IOException {
+		try {
+			// 获取要替换的耗材
+			int replaceSupplyId = Integer.parseInt(replaceSupplyIdStr);
+			
+			DBSearch dbs = new DBSearch();
+			API newSupply = dbs.getSupplyById(replaceSupplyId);
+			
+			// 从会话中获取原始的supplyList
+			HttpSession session = request.getSession();
+			@SuppressWarnings("unchecked")
+			ArrayList<API> originalSupplyList = (ArrayList<API>) session.getAttribute("originalSupplyList");
+			
+			// 创建包含所有原始耗材的supplyList，并替换第一个耗材
+			ArrayList<API> supplyList = new ArrayList<>();
+			
+			if (originalSupplyList != null && !originalSupplyList.isEmpty()) {
+				// 替换第一个耗材，保留其他耗材
+				supplyList.add(newSupply);
+				for (int i = 1; i < originalSupplyList.size(); i++) {
+					supplyList.add(originalSupplyList.get(i));
+				}
+			} else {
+				// 如果没有原始列表，则只显示新耗材
+				supplyList.add(newSupply);
+			}
+			
+			// 设置必要的属性并转发到searchResult.jsp
+			request.setAttribute("supplyList", supplyList);
+			request.setAttribute("supplyIndex_ID", supplyIndex_ID);
+			request.setAttribute("supplyIndex_Name", supplyIndex_Name);
+			
+			// 设置其他必要属性（从会话中获取或使用默认值）
+			request.setAttribute("disease", session.getAttribute("disease"));
+			Integer diseaseIndex = (Integer) session.getAttribute("diseaseIndex");
+			request.setAttribute("diseaseIndex", diseaseIndex != null ? diseaseIndex : -1);
+			@SuppressWarnings("unchecked")
+			Map<Integer, Integer> supplyToInterestMap = (Map<Integer, Integer>) session.getAttribute("supplyToInterestMap");
+			request.setAttribute("supplyToInterestMap", supplyToInterestMap != null ? supplyToInterestMap : new HashMap<>());
+			request.setAttribute("diseaseIndex_ID", diseaseIndex_ID);
+			request.setAttribute("diseaseIndex_Name", diseaseIndex_Name);
+			
+			request.getRequestDispatcher("searchResult.jsp").forward(request, response);
+		} catch (Exception e) {
 			e.printStackTrace();
 			request.setAttribute("error", "系统错误: " + e.getMessage());
 			request.getRequestDispatcher("error.jsp").forward(request, response);

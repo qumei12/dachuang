@@ -66,8 +66,11 @@
 	</style>
 	<script type="text/javascript">
 		function continueRecommendation(supplyId, element, diseaseIndex, interestId) {
+			// 获取被点击的供应在列表中的索引
+			var supplyIndex = Array.from(element.closest('table').querySelectorAll('tr[data-supply]')).indexOf(element.closest('tr'));
+			
 			// 跳转到继续推荐页面，传递选中的耗材ID、原始病种索引和兴趣主题ID
-			var url = "nextSearch?id=" + supplyId;
+			var url = "nextSearch?id=" + supplyId + "&clickedIndex=" + supplyIndex;
 			if (diseaseIndex !== undefined && diseaseIndex >= 0) {
 				url += "&diseaseIndex=" + diseaseIndex;
 				url += "&interestId=" + interestId;
@@ -109,15 +112,15 @@
 			<th class="action-column">操作</th>
 		</tr>
 		<% for (API supply : supplyList) { %>
-		<tr>
+		<tr data-supply="<%= supply.getN_ID() %>">
 			<td><%= supply.getN_ID() %></td>
 			<td><%= supply.getC_NAME() %></td>
 			<td><%= supply.getC_DESCRIPTION() != null ? supply.getC_DESCRIPTION() : "无描述" %></td>
 			<td>
 				<% if (supply.getC_URL() != null && !supply.getC_URL().isEmpty()) { %>
-				<a href="<%= supply.getC_URL() %>" target="_blank">访问</a>
+					<a href="<%= supply.getC_URL() %>" target="_blank"><%= supply.getC_URL() %></a>
 				<% } else { %>
-				无网址
+					无网址
 				<% } %>
 			</td>
 			<td class="action-column">
@@ -126,14 +129,19 @@
 					int supplyIndex = -1;
 					int interestId = -1;
 					// 通过遍历supplyIndex_ID映射来查找耗材索引
-					for (Map.Entry<Integer, Integer> entry : ((Map<Integer, Integer>) request.getAttribute("supplyIndex_ID")).entrySet()) {
-						if (entry.getValue() == supply.getN_ID()) {
-							supplyIndex = entry.getKey();
-							break;
+					if (supplyToInterestMap != null) {
+						Map<Integer, Integer> supplyIndexMap = (Map<Integer, Integer>) request.getAttribute("supplyIndex_ID");
+						if (supplyIndexMap != null) {
+							for (Map.Entry<Integer, Integer> entry : supplyIndexMap.entrySet()) {
+								if (entry.getValue() == supply.getN_ID()) {
+									supplyIndex = entry.getKey();
+									break;
+								}
+							}
+							if (supplyIndex >= 0 && supplyToInterestMap.containsKey(supplyIndex)) {
+								interestId = supplyToInterestMap.get(supplyIndex);
+							}
 						}
-					}
-					if (supplyToInterestMap != null && supplyIndex >= 0 && supplyToInterestMap.containsKey(supplyIndex)) {
-						interestId = supplyToInterestMap.get(supplyIndex);
 					}
 				%>
 				<button class="continue-button" onclick="continueRecommendation(<%= supply.getN_ID() %>, this, <%= diseaseIndex != null ? diseaseIndex : -1 %>, <%= interestId %>)">继续推荐</button>
