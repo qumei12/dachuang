@@ -195,10 +195,6 @@ p, p>a {
 			$('#mashupTable').css('display', 'none');
 		}
 	}
-	function nextRecommand(id){
-		// 跳转到继续推荐页面
-		window.location.href = './nextSearch?id=' + id;
-	}
 	
 	function replaceSupply(newSupplyId) {
 		// 获取被点击的供应索引
@@ -267,8 +263,6 @@ p, p>a {
 						</a>
 					</td>
 					<td>
-						<input type='button' class="btn-recommend" value='继续推荐' 
-							onclick="nextRecommand(<%=recommandApi.getN_ID() %>);"/>
 						<input type='button' class="btn-recommend" value='替换' 
 							onclick="replaceSupply(<%=recommandApi.getN_ID() %>);"/>
 					</td>
