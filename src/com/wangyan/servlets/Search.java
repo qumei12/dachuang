@@ -180,13 +180,14 @@ public class Search extends HttpServlet {
 			});
 			
 			System.out.println("病种 \"" + diseaseName + "\" 的Top " + dynamicTopK + " 个兴趣主题:");
-			for (int i = 0; i < Math.min(dynamicTopK, ldaModel.getInterestAmount()); i++) {
+			// 正确地为每个推荐的耗材确定其所属的主题
+			int[] interestIds = new int[limitedSupplyList.size()];
+			for (int i = 0; i < Math.min(dynamicTopK, limitedSupplyList.size()); i++) {
 				int interestId = interestIndices.get(i);
+				API supply = limitedSupplyList.get(i);
 				System.out.println("  兴趣主题 " + interestId + " - 概率: " + String.format("%.6f", interestProbs[interestId]));
-			}
-			
-			// 为每个推荐的耗材确定其主要兴趣主题
-			for (API supply : limitedSupplyList) {
+				System.out.println("    推荐耗材: \"" + supply.getC_NAME() + "\"");
+				
 				// 通过supplyIndex_ID查找耗材索引
 				Integer supplyIndex = null;
 				for (Map.Entry<Integer, Integer> entry : supplyIndex_ID.entrySet()) {
@@ -197,23 +198,9 @@ public class Search extends HttpServlet {
 				}
 				
 				if (supplyIndex != null) {
-					// 在病种的topK兴趣主题中查找该耗材所属的主要兴趣主题
-					int mainInterestId = -1;
-					double maxProb = -1;
-					
-					for (int i = 0; i < Math.min(dynamicTopK, ldaModel.getInterestAmount()); i++) {
-						int interestId = interestIndices.get(i);
-						if (supplyIndex < ldaModel.getPhi()[interestId].length && 
-							ldaModel.getPhi()[interestId][supplyIndex] > maxProb) {
-							maxProb = ldaModel.getPhi()[interestId][supplyIndex];
-							mainInterestId = interestId;
-						}
-					}
-					
-					if (mainInterestId != -1) {
-						supplyToInterestMap.put(supplyIndex, mainInterestId);
-						System.out.println("  耗材 \"" + supply.getC_NAME() + "\" 属于兴趣主题 " + mainInterestId);
-					}
+					// 直接使用推荐时的主题ID，确保一致性
+					supplyToInterestMap.put(supplyIndex, interestId);
+					interestIds[i] = interestId;
 				}
 			}
 			
@@ -241,6 +228,16 @@ public class Search extends HttpServlet {
 			
 			// 保存耗材到兴趣主题的映射（不可变副本）
 			session.setAttribute("supplyToInterestMap", new HashMap<>(supplyToInterestMap));
+			
+			// 保存每行对应的主题ID列表
+			List<Integer> rowToInterestList = new ArrayList<>();
+			for (int i = 0; i < Math.min(limitedSupplyList.size(), interestIds.length); i++) {
+				rowToInterestList.add(interestIds[i]);
+			}
+			session.setAttribute("rowToInterestList", rowToInterestList);
+			
+			// 保存病种的完整兴趣主题排序列表
+			session.setAttribute("diseaseInterestOrder", new ArrayList<>(interestIndices));
 			
 			// 记录调试信息
 			System.out.println("初始搜索时保存原始供应列表到会话");
@@ -367,70 +364,19 @@ public class Search extends HttpServlet {
 			@SuppressWarnings("unchecked")
 			Map<Integer, Integer> supplyToInterestMap = (Map<Integer, Integer>) session.getAttribute("supplyToInterestMap");
 			request.setAttribute("supplyToInterestMap", supplyToInterestMap != null ? supplyToInterestMap : new HashMap<>());
+			
+			// 传递行对应的主题ID列表
+			@SuppressWarnings("unchecked")
+			List<Integer> rowToInterestList = (List<Integer>) session.getAttribute("rowToInterestList");
+			request.setAttribute("rowToInterestList", rowToInterestList != null ? rowToInterestList : new ArrayList<>());
+			
 			request.setAttribute("diseaseIndex_ID", diseaseIndex_ID);
 			request.setAttribute("diseaseIndex_Name", diseaseIndex_Name);
-			
-			request.getRequestDispatcher("searchResult.jsp").forward(request, response);
-		} catch (Exception e) {
-			e.printStackTrace();
-			request.setAttribute("error", "系统错误: " + e.getMessage());
-			request.getRequestDispatcher("error.jsp").forward(request, response);
-		}
-	}
-	
-	/**
-	 * 处理替换耗材的请求
-	 * @param request
-	 * @param response
-	 * @param replaceSupplyIdStr 要替换的耗材ID
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	private void handleReplaceSupply(HttpServletRequest request, HttpServletResponse response, 
-			String replaceSupplyIdStr) 
-			throws ServletException, IOException {
-		try {
-			// 获取要替换的耗材
-			int replaceSupplyId = Integer.parseInt(replaceSupplyIdStr);
-			
-			DBSearch dbs = new DBSearch();
-			API newSupply = dbs.getSupplyById(replaceSupplyId);
-			
-			// 从会话中获取原始的supplyList
-			HttpSession session = request.getSession();
-			@SuppressWarnings("unchecked")
-			ArrayList<API> originalSupplyList = (ArrayList<API>) session.getAttribute("originalSupplyList");
-			
-			// 创建包含所有原始耗材的supplyList，并替换第一个耗材
-			ArrayList<API> supplyList = new ArrayList<>();
-			
-			if (originalSupplyList != null && !originalSupplyList.isEmpty()) {
-				// 替换第一个耗材，保留其他耗材
-				supplyList.add(newSupply);
-				for (int i = 1; i < originalSupplyList.size(); i++) {
-					supplyList.add(originalSupplyList.get(i));
-				}
-			} else {
-				// 如果没有原始列表，则只显示新耗材
-				supplyList.add(newSupply);
-			}
-			
-			// 设置必要的属性并转发到searchResult.jsp
-			request.setAttribute("supplyList", supplyList);
 			request.setAttribute("supplyIndex_ID", supplyIndex_ID);
 			request.setAttribute("supplyIndex_Name", supplyIndex_Name);
 			
-			// 设置其他必要属性（从会话中获取或使用默认值）
-			request.setAttribute("disease", session.getAttribute("disease"));
-			Integer diseaseIndex = (Integer) session.getAttribute("diseaseIndex");
-			request.setAttribute("diseaseIndex", diseaseIndex != null ? diseaseIndex : -1);
-			@SuppressWarnings("unchecked")
-			Map<Integer, Integer> supplyToInterestMap = (Map<Integer, Integer>) session.getAttribute("supplyToInterestMap");
-			request.setAttribute("supplyToInterestMap", supplyToInterestMap != null ? supplyToInterestMap : new HashMap<>());
-			request.setAttribute("diseaseIndex_ID", diseaseIndex_ID);
-			request.setAttribute("diseaseIndex_Name", diseaseIndex_Name);
-			
 			request.getRequestDispatcher("searchResult.jsp").forward(request, response);
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			request.setAttribute("error", "系统错误: " + e.getMessage());

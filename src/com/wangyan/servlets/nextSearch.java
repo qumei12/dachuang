@@ -15,6 +15,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import com.wangyan.index.APIMap;
 
@@ -33,6 +34,7 @@ public class nextSearch extends HttpServlet {
 	double[][] supplyRelation = null;
 
 	int top_k = 3;
+	
 
 	Map<Integer, Integer> supplyIndex_ID = null;
 	Map<Integer, String> supplyIndex_Name = null;
@@ -63,9 +65,11 @@ public class nextSearch extends HttpServlet {
 		int supplyId = Integer.parseInt(request.getParameter("id"));
 		String diseaseIndexStr = request.getParameter("diseaseIndex");
 		String interestIdStr = request.getParameter("interestId");
+		String rowIndexStr = request.getParameter("rowIndex");
 		
 		int diseaseIndex = -1;
 		int interestId = -1;
+		int rowIndex = -1;
 		
 		if (diseaseIndexStr != null && !diseaseIndexStr.isEmpty() && !diseaseIndexStr.equals("-1")) {
 			diseaseIndex = Integer.parseInt(diseaseIndexStr);
@@ -75,7 +79,21 @@ public class nextSearch extends HttpServlet {
 			interestId = Integer.parseInt(interestIdStr);
 		}
 		
-		System.out.println("接收到的参数 - 耗材ID: " + supplyId + ", 病种索引: " + diseaseIndex + ", 兴趣主题ID: " + interestId);
+		if (rowIndexStr != null && !rowIndexStr.isEmpty() && !rowIndexStr.equals("-1")) {
+			rowIndex = Integer.parseInt(rowIndexStr);
+		}
+		
+		System.out.println("接收到的参数 - 耗材ID: " + supplyId + ", 病种索引: " + diseaseIndex + ", 兴趣主题ID: " + interestId + ", 行号: " + rowIndex);
+		
+		// 添加调试信息
+		if (diseaseIndex >= 0) {
+			int[] topInterests = getTopInterest(diseaseIndex, top_k);
+			System.out.print("病种索引 " + diseaseIndex + " 的Top " + top_k + " 兴趣主题: ");
+			for (int i = 0; i < topInterests.length; i++) {
+				System.out.print(topInterests[i] + " ");
+			}
+			System.out.println();
+		}
 		
 		try {
 			// 获取当前耗材信息
@@ -86,10 +104,29 @@ public class nextSearch extends HttpServlet {
 			ArrayList<API> recommandSupplyList = new ArrayList<>();
 			
 			// 根据是否提供了兴趣主题ID来决定推荐策略
+			// 优先使用明确指定的兴趣主题ID
 			if(interestId >= 0) {
 				// 使用指定的兴趣主题进行推荐
 				System.out.println("使用指定的兴趣主题进行推荐: " + interestId);
 				recommandSupplyList = recommandByInterest(interestId, supplyId);
+			} else if (rowIndex >= 0 && diseaseIndex >= 0) {
+				// 使用行号和病种索引确定兴趣主题进行推荐
+				System.out.println("使用行号和病种索引确定兴趣主题进行推荐，行号: " + rowIndex);
+				// 获取病种的topK兴趣主题（使用与Search.java中相同的排序方法）
+				// 从会话中获取在Search.java中计算好的兴趣主题排序
+				HttpSession session = request.getSession();
+				@SuppressWarnings("unchecked")
+				List<Integer> diseaseInterestOrder = (List<Integer>) session.getAttribute("diseaseInterestOrder");
+				
+				if (diseaseInterestOrder != null && rowIndex < diseaseInterestOrder.size()) {
+					interestId = diseaseInterestOrder.get(rowIndex);
+					System.out.println("确定兴趣主题: " + interestId);
+					recommandSupplyList = recommandByInterest(interestId, supplyId);
+				} else {
+					// 如果行号超出范围，使用默认推荐方法
+					System.out.println("行号超出兴趣主题范围，使用默认推荐方法");
+					recommandSupplyList = recommandDefault(supplyId);
+				}
 			} else if (diseaseIndex >= 0) {
 				// 使用病种的TopK兴趣主题进行推荐
 				System.out.println("使用病种的TopK兴趣主题进行推荐");
@@ -105,6 +142,9 @@ public class nextSearch extends HttpServlet {
 			request.setAttribute("recommandSupplyList", recommandSupplyList);
 			request.setAttribute("supplyIndex_ID", supplyIndex_ID);
 			request.setAttribute("supplyIndex_Name", supplyIndex_Name);
+			// 传递兴趣主题ID，用于继续推荐
+			request.setAttribute("interestId", interestId >= 0 ? interestId : -1);
+			request.setAttribute("diseaseIndex", diseaseIndex >= 0 ? diseaseIndex : -1);
 			
 			// 传递被点击的供应索引
 			String clickedIndexStr = request.getParameter("clickedIndex");
@@ -290,6 +330,7 @@ public class nextSearch extends HttpServlet {
 			arr[i] = ldaModel.getTheta()[index][i];
 		}
 		
+		// 按照概率从高到低排序
 		for(int i = 0;i < arr.length;i++){
 			for(int j = 0; j < arr.length - i - 1;j++){
 				if(arr[j] < arr[j + 1]){
@@ -304,7 +345,7 @@ public class nextSearch extends HttpServlet {
 			}
 		}
 		
-		for(int i = 0; i < top; i++){
+		for(int i = 0; i < Math.min(top, arr_index.length); i++){
 			recom[i] = arr_index[i];
 		}
 		
@@ -342,7 +383,7 @@ public class nextSearch extends HttpServlet {
 			}
 		}
 		
-		for(int i = 0; i < top; i++){
+		for(int i = 0; i < Math.min(top, arr_index.length); i++){
 			recom[i] = arr_index[i];
 		}
 		
@@ -354,7 +395,7 @@ public class nextSearch extends HttpServlet {
 		int index;
 		double similarity;
 		
-		public SupplySimilarity(int index, double similarity) {
+		SupplySimilarity(int index, double similarity) {
 			this.index = index;
 			this.similarity = similarity;
 		}

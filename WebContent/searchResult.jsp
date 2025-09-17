@@ -65,16 +65,18 @@
 		}
 	</style>
 	<script type="text/javascript">
-		function continueRecommendation(supplyId, element, diseaseIndex, interestId) {
-			// 获取被点击的供应在列表中的索引
-			var supplyIndex = Array.from(element.closest('table').querySelectorAll('tr[data-supply]')).indexOf(element.closest('tr'));
-			
+		function continueRecommendation(supplyId, diseaseIndex, interestId, rowIndex) {
 			// 跳转到继续推荐页面，传递选中的耗材ID、原始病种索引和兴趣主题ID
-			var url = "nextSearch?id=" + supplyId + "&clickedIndex=" + supplyIndex;
+			var url = "nextSearch?id=" + supplyId + "&rowIndex=" + rowIndex;
 			if (diseaseIndex !== undefined && diseaseIndex >= 0) {
 				url += "&diseaseIndex=" + diseaseIndex;
+			}
+			
+			// 如果有明确的兴趣主题ID，则传递
+			if (interestId >= 0) {
 				url += "&interestId=" + interestId;
 			}
+			
 			window.location.href = url;
 		}
 	</script>
@@ -125,26 +127,18 @@
 			</td>
 			<td class="action-column">
 				<%
-					// 查找耗材对应的索引和兴趣主题
-					int supplyIndex = -1;
+					// 获取当前行号（从0开始）
+					int rowIndex = ((List<API>) supplyList).indexOf(supply);
+					
+					// 获取行对应的主题ID
 					int interestId = -1;
-					// 通过遍历supplyIndex_ID映射来查找耗材索引
-					if (supplyToInterestMap != null) {
-						Map<Integer, Integer> supplyIndexMap = (Map<Integer, Integer>) request.getAttribute("supplyIndex_ID");
-						if (supplyIndexMap != null) {
-							for (Map.Entry<Integer, Integer> entry : supplyIndexMap.entrySet()) {
-								if (entry.getValue() == supply.getN_ID()) {
-									supplyIndex = entry.getKey();
-									break;
-								}
-							}
-							if (supplyIndex >= 0 && supplyToInterestMap.containsKey(supplyIndex)) {
-								interestId = supplyToInterestMap.get(supplyIndex);
-							}
-						}
+					@SuppressWarnings("unchecked")
+					List<Integer> rowToInterestList = (List<Integer>) request.getAttribute("rowToInterestList");
+					if (rowToInterestList != null && rowIndex >= 0 && rowIndex < rowToInterestList.size()) {
+						interestId = rowToInterestList.get(rowIndex);
 					}
 				%>
-				<button class="continue-button" onclick="continueRecommendation(<%= supply.getN_ID() %>, this, <%= diseaseIndex != null ? diseaseIndex : -1 %>, <%= interestId %>)">继续推荐</button>
+				<button class="continue-button" onclick="continueRecommendation(<%= supply.getN_ID() %>, <%= diseaseIndex != null ? diseaseIndex : -1 %>, <%= interestId %>, <%= rowIndex %>)">继续推荐</button>
 			</td>
 		</tr>
 		<% } %>
