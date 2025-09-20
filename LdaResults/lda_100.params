@@ -1,8 +1,0 @@
-alpha = 0.625
-beta = 0.01
-interestAmount = 80
-userAmount = 1265
-serviceAmount = 375
-iterations = 100
-saveStep = 10
-beginSaveIters = 80

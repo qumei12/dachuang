@@ -22,6 +22,7 @@ import com.wangyan.index.APIMap;
 import dbhelper.DBSearch;
 import javabean.API;
 import model.LDAModel;
+import model.ModelTrainer;
 
 /**
  * Servlet implementation class nextSearch
@@ -46,9 +47,17 @@ public class nextSearch extends HttpServlet {
 		super();
 		// 初始化LDA模型（只初始化一次）
 		if (ldaModel == null) {
-			ldaModel = new LDAModel();
-			ldaModel.initializeLDAModel();
-			ldaModel.inferenceModel();
+			// 尝试加载预训练模型
+			ldaModel = ModelTrainer.loadPretrainedModel();
+			
+			if (ldaModel == null) {
+				// 如果没有预训练模型，则进行实时训练
+				System.out.println("未找到预训练模型，进行实时训练...");
+				ldaModel = new LDAModel();
+				ldaModel.initializeLDAModel();
+				ldaModel.inferenceModel();
+				System.out.println("实时训练完成");
+			}
 		}
 		
 		// 初始化索引映射

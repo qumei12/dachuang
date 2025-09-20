@@ -20,6 +20,7 @@ import com.wangyan.index.MashupMap;
 import javabean.API;
 import javabean.Mashup;
 import model.LDAModel;
+import model.ModelTrainer;
 import dbhelper.DBSearch;
 
 /**
@@ -63,13 +64,20 @@ public class Search extends HttpServlet {
 	 */
 	public Search() {
 		super();
+		// 初始化LDA模型（只初始化一次）
 		if (ldaModel == null) {
-			ldaModel = new LDAModel();
-			//System.out.println("1 Initialize the model ...");
-			ldaModel.initializeLDAModel();
-			//System.out.println("2 Learning and Saving the model ...");
-			ldaModel.inferenceModel();
-			//System.out.println("LDAModel creation finished!");
+			// 尝试加载预训练模型
+			ldaModel = ModelTrainer.loadPretrainedModel();
+			
+			if (ldaModel == null) {
+				// 如果没有预训练模型，则进行实时训练
+				System.out.println("未找到预训练模型，进行实时训练...");
+				ldaModel = new LDAModel();
+				ldaModel.initializeLDAModel();
+				ldaModel.inferenceModel();
+				System.out.println("实时训练完成");
+			}
+			
 			diseaseWordsBag = ldaModel.getMashupWordsBag();
 			supplyWordsBag = ldaModel.getAPIWordsBag();
 			//System.out.println("词袋子生成完毕");
@@ -86,7 +94,7 @@ public class Search extends HttpServlet {
 		iu = new IndexUtil();
 		iu.createIndex(diseaseIndex_Name);
 	}
-
+	
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String diseaseName = request.getParameter("search");
 		String replaceSupplyIdStr = request.getParameter("replaceSupplyId");

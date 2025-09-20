@@ -1,0 +1,8 @@
+#LDA Model Configuration
+#Sat Sep 20 16:18:00 CST 2025
+interestAmount=80
+supplyAmount=375
+iterations=100
+beta=0.01
+alpha=0.625
+diseaseAmount=1265

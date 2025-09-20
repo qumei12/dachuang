@@ -24,6 +24,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import dbhelper.DBSearch;
 import javabean.API;
 import model.LDAModel;
+import model.ModelTrainer;
 
 public class IndexUtil {
 	public void createIndex(Map<Integer, String> mashupIndex_Name){

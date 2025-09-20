@@ -277,4 +277,37 @@ public class LDAModel {
 	public double[][] getTheta() {
 		return theta;
 	}
+	
+	// 添加setter方法，用于加载预训练模型
+	public void setPhi(double[][] phi) {
+		this.phi = phi;
+	}
+	
+	public void setTheta(double[][] theta) {
+		this.theta = theta;
+	}
+	
+	public void setInterestAmount(int interestAmount) {
+		this.interestAmount = interestAmount;
+	}
+	
+	public void setDiseaseAmount(int diseaseAmount) {
+		this.diseaseAmount = diseaseAmount;
+	}
+	
+	public void setSupplyAmount(int supplyAmount) {
+		this.supplyAmount = supplyAmount;
+	}
+	
+	public void setAlpha(double alpha) {
+		this.alpha = alpha;
+	}
+	
+	public void setBeta(double beta) {
+		this.beta = beta;
+	}
+	
+	public void setIterations(int iterations) {
+		this.iterations = iterations;
+	}
 }
