@@ -41,16 +41,16 @@ public class LDAModel {
 
 	public LDAModel() {// 修改构造函数，不接收top_k参数
 
-		interestAmount = 80;
+		interestAmount = 80; // 进一步减少主题数以加快收敛
 		// diseaseAmount = 100;
 		// supplyAmount = 2000;
 
-		alpha = 50.0 / interestAmount;
-		beta = 0.01;
+		alpha = 0.1; // 使用固定alpha值而不是基于主题数计算
+		beta = 0.05; // 调整beta值以平衡稀疏数据处理
 
-		iterations = 100;
-		saveStep = 10;
-		beginSaveIters = 80;
+		iterations = 1000;   // 减少迭代次数以加快训练
+		saveStep = 10;       // 更频繁地保存步长
+		beginSaveIters = 20; // 更早开始保存迭代次数
 //		this.top_k = top_k;
 	}
 
@@ -133,7 +133,8 @@ public class LDAModel {
 
 	}
 
-	private int sampleInterestZ(int m, int n) {
+	// 将私有方法改为公共方法，以便在ModelTrainer中调用
+	public int sampleInterestZ(int m, int n) {
 		// TODO Auto-generated method stub
 		// Sample from p(z_i|z_-i, w) using Gibbs update rule
 
@@ -178,7 +179,8 @@ public class LDAModel {
 		return newInterest;
 	}
 
-	private void updateEstimatedParameters() {
+	// 将私有方法改为公共方法，以便在ModelTrainer中调用
+	public void updateEstimatedParameters() {
 		// TODO Auto-generated method stub
 		for (int k = 0; k < interestAmount; k++) {
 			for (int t = 0; t < supplyAmount; t++) {

@@ -31,7 +31,7 @@ public class ModelTrainer {
         
         // 进行模型训练
         long startTime = System.currentTimeMillis();
-        ldaModel.inferenceModel();
+        trainModelWithConvergenceCheck(ldaModel);
         long endTime = System.currentTimeMillis();
         
         System.out.println("模型训练完成，耗时: " + (endTime - startTime) + "ms");
@@ -40,6 +40,287 @@ public class ModelTrainer {
         saveModel(ldaModel);
         
         System.out.println("模型已保存到 " + MODEL_DIR + " 目录");
+    }
+    
+    /**
+     * 带收敛检测的模型训练
+     * @param model LDA模型
+     */
+    private static void trainModelWithConvergenceCheck(LDAModel model) {
+        int totalIterations = model.iterations;
+        int progressInterval = Math.max(1, totalIterations / 100); // 至少每1%显示一次进度
+        
+        // 收敛检测参数
+        double phiConvergenceThreshold = 5e-4;  // Phi矩阵收敛阈值
+        double thetaConvergenceThreshold = 5e-3; // Theta矩阵收敛阈值
+        int maxIterationsWithoutImprovement = 50; // 最大无改善迭代次数
+        int iterationsWithoutImprovement = 0;
+        
+        System.out.println("开始训练，总共 " + totalIterations + " 次迭代");
+        System.out.println("收敛阈值: Phi=" + phiConvergenceThreshold + ", Theta=" + thetaConvergenceThreshold);
+        printProgressBar(0, totalIterations);
+        
+        // 保存前一次的矩阵用于计算变化量
+        double[][] prevPhi = cloneMatrix(model.phi);
+        double[][] prevTheta = cloneMatrix(model.theta);
+        
+        // 记录变化量历史用于分析收敛趋势
+        List<Double> phiChangeHistory = new ArrayList<>();
+        List<Double> thetaChangeHistory = new ArrayList<>();
+        
+        // 调整收敛检测频率，确保有足够的检测点
+        int convergenceCheckInterval = Math.max(1, model.saveStep / 2);
+        
+        // 记录最小变化量用于判断是否陷入局部最优
+        double minPhiChange = Double.MAX_VALUE;
+        double minThetaChange = Double.MAX_VALUE;
+        int minChangeNotImprovedCount = 0;
+        int maxMinChangeNotImprovedCount = 30; // 最小变化量连续无改善次数阈值
+        
+        for (int i = 0; i < totalIterations; i++) {
+            // 使用Gibbs采样更新主题分配
+            for (int m = 0; m < model.diseaseAmount; m++) {
+                int N = model.DiseasesSupplies[m].length;
+                for (int n = 0; n < N; n++) {
+                    int newInterest = model.sampleInterestZ(m, n);
+                    model.z[m][n] = newInterest;
+                }
+            }
+            
+            // 定期更新参数估计和收敛检测
+            if ((i >= model.beginSaveIters) && (((i - model.beginSaveIters) % convergenceCheckInterval) == 0)) {
+                model.updateEstimatedParameters();
+                
+                // 计算矩阵变化量
+                double phiChange = calculateMatrixChange(prevPhi, model.phi);
+                double thetaChange = calculateMatrixChange(prevTheta, model.theta);
+                
+                // 保存变化量历史
+                phiChangeHistory.add(phiChange);
+                thetaChangeHistory.add(thetaChange);
+                
+                // 保存当前矩阵用于下次比较
+                prevPhi = cloneMatrix(model.phi);
+                prevTheta = cloneMatrix(model.theta);
+                
+                // 输出详细收敛信息
+                System.out.printf("%n迭代 %d/%d, Phi变化量: %.8f, Theta变化量: %.8f", 
+                    i + 1, totalIterations, phiChange, thetaChange);
+                
+                // 计算最近几次迭代的平均变化量
+                if (phiChangeHistory.size() >= 10) {
+                    double avgPhiChange = calculateAverage(phiChangeHistory, 10);
+                    double avgThetaChange = calculateAverage(thetaChangeHistory, 10);
+                    System.out.printf(", 最近10次平均: Phi=%.8f, Theta=%.8f", avgPhiChange, avgThetaChange);
+                }
+                
+                // 检查收敛性 - 分别判断Phi和Theta的收敛情况
+                boolean isPhiConverged = phiChange < phiConvergenceThreshold;
+                boolean isThetaConverged = thetaChange < thetaConvergenceThreshold;
+                
+                // 检查是否达到最小变化量
+                boolean isMinPhiNotImproved = (phiChange > minPhiChange * 1.1); // 当前变化量比最小值高10%以上
+                boolean isMinThetaNotImproved = (thetaChange > minThetaChange * 1.1);
+                
+                if (isMinPhiNotImproved && isMinThetaNotImproved) {
+                    minChangeNotImprovedCount++;
+                } else {
+                    minChangeNotImprovedCount = 0;
+                }
+                
+                // 如果Phi和Theta都收敛，或者陷入局部最优，则增加收敛计数
+                if ((isPhiConverged && isThetaConverged) || 
+                    (minChangeNotImprovedCount >= maxMinChangeNotImprovedCount)) {
+                    iterationsWithoutImprovement++;
+                    System.out.printf(" (连续收敛次数: %d/%d)", iterationsWithoutImprovement, maxIterationsWithoutImprovement);
+                    if (iterationsWithoutImprovement >= maxIterationsWithoutImprovement) {
+                        if (minChangeNotImprovedCount >= maxMinChangeNotImprovedCount) {
+                            System.out.println("\n模型可能陷入局部最优，提前停止训练");
+                        } else {
+                            System.out.println("\n模型已收敛，提前停止训练");
+                        }
+                        break;
+                    }
+                } else {
+                    if (iterationsWithoutImprovement > 0) {
+                        System.out.printf(" (收敛中断，变化量超过阈值)");
+                    }
+                    iterationsWithoutImprovement = 0; // 重置计数器
+                }
+                
+                // 检查是否达到最大迭代次数
+                if (i + 1 >= totalIterations) {
+                    System.out.println("\n达到最大迭代次数，停止训练");
+                    break;
+                }
+                
+                // 每50次迭代输出一次统计信息
+                if ((i + 1) % 50 == 0 && i > 0) {
+                    System.out.println();
+                    printConvergenceStats(phiChangeHistory, thetaChangeHistory, i + 1);
+                }
+            } else if ((i + 1) % progressInterval == 0 || i == totalIterations - 1) {
+                // 定期更新进度条（不进行收敛检测时）
+                printProgressBar(i + 1, totalIterations);
+            }
+        }
+        
+        // 确保最后更新参数
+        model.updateEstimatedParameters();
+        System.out.println(); // 换行，避免进度条影响后续输出
+        
+        // 输出最终收敛统计
+        printFinalConvergenceStats(phiChangeHistory, thetaChangeHistory);
+    }
+    
+    /**
+     * 计算列表最后n个元素的平均值
+     * @param list 数据列表
+     * @param n 元素个数
+     * @return 平均值
+     */
+    private static double calculateAverage(List<Double> list, int n) {
+        if (list.size() < n) return 0.0;
+        
+        double sum = 0.0;
+        for (int i = list.size() - n; i < list.size(); i++) {
+            sum += list.get(i);
+        }
+        return sum / n;
+    }
+    
+    /**
+     * 打印收敛统计信息
+     * @param phiChangeHistory Phi变化量历史
+     * @param thetaChangeHistory Theta变化量历史
+     * @param iteration 当前迭代次数
+     */
+    private static void printConvergenceStats(List<Double> phiChangeHistory, List<Double> thetaChangeHistory, int iteration) {
+        if (phiChangeHistory.isEmpty()) return;
+        
+        double minPhi = Collections.min(phiChangeHistory);
+        double maxPhi = Collections.max(phiChangeHistory);
+        double avgPhi = phiChangeHistory.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        
+        double minTheta = Collections.min(thetaChangeHistory);
+        double maxTheta = Collections.max(thetaChangeHistory);
+        double avgTheta = thetaChangeHistory.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        
+        System.out.printf("  迭代 %d 统计 - Phi变化量 [最小: %.8f, 最大: %.8f, 平均: %.8f]%n", 
+            iteration, minPhi, maxPhi, avgPhi);
+        System.out.printf("  迭代 %d 统计 - Theta变化量 [最小: %.8f, 最大: %.8f, 平均: %.8f]%n", 
+            iteration, minTheta, maxTheta, avgTheta);
+    }
+    
+    /**
+     * 打印最终收敛统计信息
+     * @param phiChangeHistory Phi变化量历史
+     * @param thetaChangeHistory Theta变化量历史
+     */
+    private static void printFinalConvergenceStats(List<Double> phiChangeHistory, List<Double> thetaChangeHistory) {
+        if (phiChangeHistory.isEmpty()) return;
+        
+        System.out.println("\n=== 最终收敛统计 ===");
+        System.out.println("总迭代次数: " + phiChangeHistory.size());
+        
+        if (phiChangeHistory.size() >= 10) {
+            double recentAvgPhi = calculateAverage(phiChangeHistory, 10);
+            double recentAvgTheta = calculateAverage(thetaChangeHistory, 10);
+            System.out.printf("最近10次迭代平均变化量 - Phi: %.8f, Theta: %.8f%n", recentAvgPhi, recentAvgTheta);
+        }
+        
+        if (phiChangeHistory.size() >= 50) {
+            double recentAvgPhi = calculateAverage(phiChangeHistory, 50);
+            double recentAvgTheta = calculateAverage(thetaChangeHistory, 50);
+            System.out.printf("最近50次迭代平均变化量 - Phi: %.8f, Theta: %.8f%n", recentAvgPhi, recentAvgTheta);
+        }
+        
+        double overallAvgPhi = phiChangeHistory.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        double overallAvgTheta = thetaChangeHistory.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        System.out.printf("整体平均变化量 - Phi: %.8f, Theta: %.8f%n", overallAvgPhi, overallAvgTheta);
+    }
+    
+    /**
+     * 计算两个矩阵之间的变化量（Frobenius范数）
+     * @param prevMatrix 前一次的矩阵
+     * @param currMatrix 当前矩阵
+     * @return 矩阵变化量
+     */
+    private static double calculateMatrixChange(double[][] prevMatrix, double[][] currMatrix) {
+        if (prevMatrix == null || currMatrix == null) {
+            return Double.MAX_VALUE;
+        }
+        
+        double sumSquaredDiff = 0.0;
+        int rows = prevMatrix.length;
+        int cols = prevMatrix[0].length;
+        
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                double diff = currMatrix[i][j] - prevMatrix[i][j];
+                sumSquaredDiff += diff * diff;
+            }
+        }
+        
+        return Math.sqrt(sumSquaredDiff / (rows * cols)); // 归一化处理
+    }
+    
+    /**
+     * 克隆矩阵
+     * @param matrix 原矩阵
+     * @return 克隆的矩阵
+     */
+    private static double[][] cloneMatrix(double[][] matrix) {
+        if (matrix == null) {
+            return null;
+        }
+        
+        int rows = matrix.length;
+        int cols = matrix[0].length;
+        double[][] cloned = new double[rows][cols];
+        
+        for (int i = 0; i < rows; i++) {
+            System.arraycopy(matrix[i], 0, cloned[i], 0, cols);
+        }
+        
+        return cloned;
+    }
+    
+    /**
+     * 打印进度条
+     * @param current 当前迭代次数
+     * @param total 总迭代次数
+     */
+    private static void printProgressBar(int current, int total) {
+        int barLength = 50; // 进度条长度
+        double progress = (double) current / total;
+        int completedLength = (int) (progress * barLength);
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append("\r[");
+        
+        // 已完成部分
+        for (int i = 0; i < completedLength; i++) {
+            sb.append("=");
+        }
+        
+        // 当前位置
+        if (completedLength < barLength) {
+            sb.append(">");
+            completedLength++;
+        }
+        
+        // 未完成部分
+        for (int i = completedLength; i < barLength; i++) {
+            sb.append(" ");
+        }
+        
+        sb.append("] ");
+        sb.append(String.format("%.1f", progress * 100)).append("% ");
+        sb.append("(").append(current).append("/").append(total).append(")");
+        
+        System.out.print(sb.toString());
+        System.out.flush();
     }
     
     /**
