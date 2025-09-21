@@ -21,7 +21,7 @@ public class APIMap {
 		try {
 			statement = connection.createStatement();
 			
-			String sql = "select MIN(N_ID), C_NAME from `tb_api` group by C_NAME order by MIN(N_ID);";
+			String sql = "select MIN(N_ID), C_NAME from `tb_supply` group by C_NAME order by MIN(N_ID);";
 			
 			ResultSet rs = statement.executeQuery(sql);
 			

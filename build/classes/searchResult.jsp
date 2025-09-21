@@ -95,8 +95,8 @@
 	<% if (disease != null) { %>
 	<div class="disease-info">
 		<h3>病种信息</h3>
-		<p><strong>名称:</strong> <%= disease.getC_NAME() %></p>
-		<p><strong>描述:</strong> <%= disease.getC_DESCRIPTION() != null ? disease.getC_DESCRIPTION() : "无描述" %></p>
+		<p><strong>drg编码:</strong> <%= disease.getC_NAME() %></p>
+		<p><strong>drg名称:</strong> <%= disease.getC_DESCRIPTION() != null ? disease.getC_DESCRIPTION() : "无描述" %></p>
 		<% if (disease.getC_URL() != null && !disease.getC_URL().isEmpty()) { %>
 		<p><strong>网址:</strong> <a href="<%= disease.getC_URL() %>" target="_blank"><%= disease.getC_URL() %></a></p>
 		<% } %>
@@ -110,7 +110,7 @@
 			<th>ID</th>
 			<th>耗材名称</th>
 			<th>描述</th>
-			<th>网址</th>
+			<th>价格</th>
 			<th class="action-column">操作</th>
 		</tr>
 		<% for (API supply : supplyList) { %>

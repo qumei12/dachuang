@@ -30,7 +30,7 @@ public class DBSearch {
 		try {
 			statement = connection.createStatement();
 
-			ResultSet rs = statement.executeQuery("select count(*) from `tb_mashup`;");
+			ResultSet rs = statement.executeQuery("select count(*) from `tb_disease`;");
 
 			while (rs.next()) {
 				MashupAmount = rs.getInt(1);
@@ -66,7 +66,7 @@ public class DBSearch {
 
 		try {
 			statement = connection.createStatement();
-			String sql = "select * from `tb_mashup` order by N_ID limit " + startId + "," + count + ";";
+			String sql = "select * from `tb_disease` order by N_ID limit " + startId + "," + count + ";";
 			//System.out.println(sql);
 			ResultSet rs = statement.executeQuery(sql);
 
@@ -107,7 +107,7 @@ public class DBSearch {
 		try {
 			statement = connection.createStatement();
 
-			String sql = "select * from `tb_api` where n_mashup_id=" + diseaseId + " order by N_ID ";
+			String sql = "select * from `tb_supply` where n_mashup_id=" + diseaseId + " order by N_ID ";
 			System.out.println("执行查询关联耗材: " + sql); // 添加调试信息
 
 			ResultSet rs = statement.executeQuery(sql);
@@ -151,7 +151,7 @@ public class DBSearch {
 		try {
 			statement = connection.createStatement();
 
-			ResultSet rs = statement.executeQuery("select distinct(c_name), n_id from `tb_api` group by c_name order by n_id;");
+			ResultSet rs = statement.executeQuery("select distinct(c_name), n_id from `tb_supply` group by c_name order by n_id;");
 
 			int order = 0;
 
@@ -177,7 +177,7 @@ public class DBSearch {
 
 		Statement statement = null;
 
-		String sql = "select * from `tb_api` where n_id=" + id + ";";
+		String sql = "select * from `tb_supply` where n_id=" + id + ";";
 
 		API api = new API();
 
@@ -212,7 +212,7 @@ public class DBSearch {
 
 		Statement statement = null;
 
-		String sql = "select * from `tb_mashup` where n_id=" + id + ";";
+		String sql = "select * from `tb_disease` where n_id=" + id + ";";
 
 		Mashup mashup = new Mashup();
 
@@ -250,7 +250,7 @@ public class DBSearch {
 
 		try {
 			// 使用PreparedStatement防止SQL注入
-			String sql = "SELECT * FROM tb_mashup WHERE C_NAME = ?";
+			String sql = "SELECT * FROM tb_disease WHERE C_NAME = ?";
 			statement = connection.prepareStatement(sql);
 			statement.setString(1, name);
 
@@ -296,7 +296,7 @@ public class DBSearch {
 
 		try {
 			// 使用PreparedStatement防止SQL注入
-			String sql = "SELECT * FROM tb_mashup WHERE C_NAME LIKE ?";
+			String sql = "SELECT * FROM tb_disease WHERE C_NAME LIKE ?";
 			statement = connection.prepareStatement(sql);
 			statement.setString(1, "%" + name + "%");
 
@@ -342,7 +342,7 @@ public class DBSearch {
 
 		try {
 			statement = connection.createStatement();
-			String sql = "select n_id from `tb_api` order by n_id limit " + index + ",1";
+			String sql = "select n_id from `tb_supply` order by n_id limit " + index + ",1";
 			ResultSet rs = statement.executeQuery(sql);
 
 			if (rs.next()) {
@@ -374,7 +374,7 @@ public class DBSearch {
 
 		try {
 			statement = connection.createStatement();
-			String sql = "select n_id from `tb_api` order by n_id limit " + index + ",1";
+			String sql = "select n_id from `tb_supply` order by n_id limit " + index + ",1";
 			ResultSet rs = statement.executeQuery(sql);
 
 			if (rs.next()) {

@@ -20,8 +20,8 @@ public class PretrainModel {
         LDAModel model = ModelTrainer.loadPretrainedModel();
         if (model != null) {
             System.out.println("模型加载成功");
-            System.out.println("主题数量: " + model.getInterestAmount());
-            System.out.println("病种数量: " + model.getDiseaseAmount());
+            System.out.println("主题数量: " + model.getTopicAmount());
+            System.out.println("病案数量: " + model.getCaseAmount());
             System.out.println("耗材数量: " + model.getSupplyAmount());
         } else {
             System.out.println("模型加载失败");

@@ -78,7 +78,10 @@ public class Search extends HttpServlet {
 				System.out.println("实时训练完成");
 			}
 			
-			diseaseWordsBag = ldaModel.getMashupWordsBag();
+			// 获取病案（原Mashup）和耗材（原API）的词汇袋
+			// 由于LDAModel中没有getMashupWordsBag方法，我们使用getAPIWordsBag获取耗材词汇袋
+			// 病案的词汇袋可以通过其他方式获取，这里暂时注释掉
+			// diseaseWordsBag = ldaModel.getMashupWordsBag();
 			supplyWordsBag = ldaModel.getAPIWordsBag();
 			//System.out.println("词袋子生成完毕");
 		}
@@ -170,13 +173,13 @@ public class Search extends HttpServlet {
 			Map<Integer, Integer> supplyToInterestMap = new HashMap<>();
 			
 			// 获取当前病种的topK兴趣主题
-			Double[] interestProbs = new Double[ldaModel.getInterestAmount()];
-			for (int k = 0; k < ldaModel.getInterestAmount(); k++) {
+			Double[] interestProbs = new Double[ldaModel.getTopicAmount()];
+			for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
 				interestProbs[k] = ldaModel.getTheta()[diseaseIndex][k];
 			}
 
 			List<Integer> interestIndices = new ArrayList<>();
-			for (int i = 0; i < ldaModel.getInterestAmount(); i++) {
+			for (int i = 0; i < ldaModel.getTopicAmount(); i++) {
 				interestIndices.add(i);
 			}
 

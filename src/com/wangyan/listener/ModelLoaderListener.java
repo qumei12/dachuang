@@ -47,8 +47,8 @@ public class ModelLoaderListener implements ServletContextListener {
             } else {
                 long endTime = System.currentTimeMillis();
                 System.out.println("LDA模型加载成功，耗时: " + (endTime - startTime) + "ms");
-                System.out.println("模型信息 - 主题数: " + ldaModel.getInterestAmount() + 
-                                 ", 病种数: " + ldaModel.getDiseaseAmount() + 
+                System.out.println("模型信息 - 主题数: " + ldaModel.getTopicAmount() + 
+                                 ", 病种数: " + ldaModel.getCaseAmount() + 
                                  ", 耗材数: " + ldaModel.getSupplyAmount());
             }
         } catch (Exception e) {

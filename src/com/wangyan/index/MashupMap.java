@@ -21,7 +21,7 @@ public class MashupMap {
 		try {
 			statement = connection.createStatement();
 			
-			String sql = "select N_ID, C_NAME from `tb_mashup`;";
+			String sql = "select N_ID, C_NAME from `tb_disease`;";
 			
 			ResultSet rs = statement.executeQuery(sql);
 			

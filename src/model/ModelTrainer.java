@@ -53,7 +53,7 @@ public class ModelTrainer {
         // 收敛检测参数
         double phiConvergenceThreshold = 5e-4;  // Phi矩阵收敛阈值
         double thetaConvergenceThreshold = 5e-3; // Theta矩阵收敛阈值
-        int maxIterationsWithoutImprovement = 50; // 最大无改善迭代次数
+        int maxIterationsWithoutImprovement = 5; // 最大无改善迭代次数（由于迭代次数减少到100，这里也相应减小）
         int iterationsWithoutImprovement = 0;
         
         System.out.println("开始训练，总共 " + totalIterations + " 次迭代");
@@ -75,15 +75,15 @@ public class ModelTrainer {
         double minPhiChange = Double.MAX_VALUE;
         double minThetaChange = Double.MAX_VALUE;
         int minChangeNotImprovedCount = 0;
-        int maxMinChangeNotImprovedCount = 30; // 最小变化量连续无改善次数阈值
+        int maxMinChangeNotImprovedCount = 3; // 最小变化量连续无改善次数阈值（由于迭代次数减少到100，这里也相应减小）
         
         for (int i = 0; i < totalIterations; i++) {
             // 使用Gibbs采样更新主题分配
-            for (int m = 0; m < model.diseaseAmount; m++) {
-                int N = model.DiseasesSupplies[m].length;
+            for (int m = 0; m < model.caseAmount; m++) {
+                int N = model.CasesSupplies[m].length;
                 for (int n = 0; n < N; n++) {
-                    int newInterest = model.sampleInterestZ(m, n);
-                    model.z[m][n] = newInterest;
+                    int newTopic = model.sampleTopicZ(m, n);
+                    model.z[m][n] = newTopic;
                 }
             }
             
@@ -328,15 +328,18 @@ public class ModelTrainer {
      */
     private static void saveModel(LDAModel model) {
         try {
+            // 先保存配置信息
+            saveConfig(model, CONFIG_FILE);
+            System.out.println("配置信息已保存至 " + CONFIG_FILE);
+
             // 保存phi矩阵 (主题-耗材分布)
             saveMatrix(model.getPhi(), PHI_FILE);
-            
+            System.out.println("Phi矩阵已保存至 " + PHI_FILE);
+
             // 保存theta矩阵 (病种-主题分布)
             saveMatrix(model.getTheta(), THETA_FILE);
-            
-            // 保存配置信息
-            saveConfig(model, CONFIG_FILE);
-            
+            System.out.println("Theta矩阵已保存至 " + THETA_FILE);
+
         } catch (IOException e) {
             System.err.println("保存模型时出错: " + e.getMessage());
             e.printStackTrace();
@@ -364,28 +367,28 @@ public class ModelTrainer {
             
             // 加载配置信息
             Properties config = loadConfig(CONFIG_FILE);
-            int interestAmount = Integer.parseInt(config.getProperty("interestAmount"));
-            int diseaseAmount = Integer.parseInt(config.getProperty("diseaseAmount"));
+            int topicAmount = Integer.parseInt(config.getProperty("topicAmount"));
+            int caseAmount = Integer.parseInt(config.getProperty("caseAmount"));
             int supplyAmount = Integer.parseInt(config.getProperty("supplyAmount"));
             
             // 创建LDA模型实例
             LDAModel model = new LDAModel();
-            model.setInterestAmount(interestAmount);
-            model.setDiseaseAmount(diseaseAmount);
+            model.setTopicAmount(topicAmount);
+            model.setCaseAmount(caseAmount);
             model.setSupplyAmount(supplyAmount);
             model.setAlpha(Double.parseDouble(config.getProperty("alpha")));
             model.setBeta(Double.parseDouble(config.getProperty("beta")));
             model.setIterations(Integer.parseInt(config.getProperty("iterations")));
             
             // 加载phi矩阵 (主题-耗材分布)
-            model.setPhi(loadMatrix(PHI_FILE, interestAmount, supplyAmount));
+            model.setPhi(loadMatrix(PHI_FILE, topicAmount, supplyAmount));
             
-            // 加载theta矩阵 (病种-主题分布)
-            model.setTheta(loadMatrix(THETA_FILE, diseaseAmount, interestAmount));
+            // 加载theta矩阵 (病案-主题分布)
+            model.setTheta(loadMatrix(THETA_FILE, caseAmount, topicAmount));
             
             System.out.println("预训练模型加载成功");
-            System.out.println("模型信息 - 主题数: " + model.getInterestAmount() + 
-                             ", 病种数: " + model.getDiseaseAmount() + 
+            System.out.println("模型信息 - 主题数: " + model.getTopicAmount() + 
+                             ", 病案数: " + model.getCaseAmount() + 
                              ", 耗材数: " + model.getSupplyAmount());
             return model;
             
@@ -419,12 +422,12 @@ public class ModelTrainer {
      */
     private static void saveConfig(LDAModel model, String filename) throws IOException {
         Properties config = new Properties();
-        config.setProperty("interestAmount", String.valueOf(model.getInterestAmount()));
-        config.setProperty("diseaseAmount", String.valueOf(model.getDiseaseAmount()));
+        config.setProperty("topicAmount", String.valueOf(model.getTopicAmount()));
+        config.setProperty("caseAmount", String.valueOf(model.getCaseAmount()));
         config.setProperty("supplyAmount", String.valueOf(model.getSupplyAmount()));
-        config.setProperty("alpha", String.valueOf(model.alpha));
-        config.setProperty("beta", String.valueOf(model.beta));
-        config.setProperty("iterations", String.valueOf(model.iterations));
+        config.setProperty("alpha", String.valueOf(model.getAlpha()));
+        config.setProperty("beta", String.valueOf(model.getBeta()));
+        config.setProperty("iterations", String.valueOf(model.getIterations()));
         
         try (FileOutputStream fos = new FileOutputStream(filename)) {
             config.store(fos, "LDA Model Configuration");

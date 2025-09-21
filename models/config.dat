@@ -1,8 +1,8 @@
 #LDA Model Configuration
-#Sat Sep 20 17:57:38 CST 2025
-interestAmount=80
-supplyAmount=375
-iterations=1000
+#Mon Sep 22 00:49:49 CST 2025
+topicAmount=80
+supplyAmount=984
+iterations=100
+caseAmount=10935
 beta=0.05
 alpha=0.1
-diseaseAmount=1265

@@ -248,20 +248,20 @@ public class IndexUtil {
 		}
 
 		// 确保mashupIndex在有效范围内
-		if (mashupIndex >= ldaModel.getDiseaseAmount()) {
+		if (mashupIndex >= ldaModel.getCaseAmount()) {
 			System.out.println("Mashup索引超出范围: " + mashupIndex);
 			return recommendedAPIs;
 		}
 
 		// 获取用户对各兴趣主题的概率
-		Double[] interestProbs = new Double[ldaModel.getInterestAmount()];
-		for (int k = 0; k < ldaModel.getInterestAmount(); k++) {
+		Double[] interestProbs = new Double[ldaModel.getTopicAmount()];
+		for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
 			interestProbs[k] = ldaModel.getTheta()[mashupIndex][k];
 		}
 
 		// 对兴趣主题按概率排序
 		List<Integer> interestIndices = new ArrayList<>();
-		for (int i = 0; i < ldaModel.getInterestAmount(); i++) {
+		for (int i = 0; i < ldaModel.getTopicAmount(); i++) {
 			interestIndices.add(i);
 		}
 
@@ -280,7 +280,7 @@ public class IndexUtil {
 		// 为每个top interest推荐一个最相关的API
 		Set<Integer> selectedAPIs = new HashSet<>(); // 避免重复推荐同一个API
 
-		for (int i = 0; i < Math.min(interestCount, ldaModel.getInterestAmount()); i++) {
+		for (int i = 0; i < Math.min(interestCount, ldaModel.getTopicAmount()); i++) {
 			int interestId = interestIndices.get(i);
 
 			// 在该兴趣主题中找出最相关的API
