@@ -1,14 +1,14 @@
 <%@page import="java.util.List"%>
-<%@page import="javabean.Mashup"%>
+<%@page import="javabean.Disease"%>
 <%@ page language="java" contentType="text/html; charset=utf-8"
 	pageEncoding="utf-8"%>
 <%@page import="java.util.ArrayList"%>
-<%@page import="javabean.API"%>
+<%@page import="javabean.Supply"%>
 <!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>Api推荐结果</title>
+<title>耗材推荐结果</title>
 <style type="text/css">
 body {
 	font-family: Georgia, "Times New Roman", Times, serif;
@@ -142,10 +142,10 @@ p, p>a {
 <script type="text/javascript" src='jquery-1.12.2.js'></script>
 <script type="text/javascript">
 	function showTable(type) {
-		if (type == 'Mashup') {
+		if (type == 'Disease') {
 			$('#apiTable').css('display', 'none');
 			$('#mashupTable').css('display', 'block');
-		} else if (type == 'API') {
+		} else if (type == 'Supply') {
 			$('#apiTable').css('display', 'block');
 			$('#mashupTable').css('display', 'none');
 		}
@@ -164,7 +164,7 @@ p, p>a {
 <body>
 	<header class='header'>
 		<div id='title'>
-			<h1>Api推荐结果</h1>
+			<h1>耗材推荐结果</h1>
 		</div>
 	</header>
 	<div class='content'>
@@ -182,10 +182,10 @@ p, p>a {
 				
 				<%
 					Object obj_r = request.getAttribute("result");
-					ArrayList<API> result = (ArrayList<API>) obj_r;
+					ArrayList<Supply> result = (ArrayList<Supply>) obj_r;
 
 					Object obj_c = request.getAttribute("chain");
-					ArrayList<API> chain = (ArrayList<API>) obj_c;
+					ArrayList<Supply> chain = (ArrayList<Supply>) obj_c;
 				%>
 				<table class='tb'>
 							<tr>
@@ -193,7 +193,7 @@ p, p>a {
 				<%
 					for(int i = 0;i < chain.size();i++){
 				%>
-								<th>已有API</th>
+								<th>已有耗材</th>
 				<%
 					}	
 				%>
@@ -203,12 +203,12 @@ p, p>a {
 				<%
 					
 					for(int i = 0; i < chain.size(); i++){
-						API api = chain.get(i);
+						Supply supply = chain.get(i);
 				%>
 						<script type="text/javascript">
-							chain.push(<%=api.getN_ID() %>);
+							chain.push(<%=supply.getID() %>);
 						</script>
-						<td><%=api.getC_NAME() %></td>
+						<td><%=supply.getNAME() %></td>
 				<%
 					}
 				%>
@@ -220,7 +220,7 @@ p, p>a {
 				
 				<%
 					for(int i = 0; i < result.size(); i++){
-						API resApi = result.get(i);
+						Supply resSupply = result.get(i);
 				%>
 				<div style="display:block">
 				<div><h2>推荐结果<%=(i + 1) %></h2></div>
@@ -228,13 +228,13 @@ p, p>a {
 						<tr>
 							
 							
-							<th>推荐Api名称</th>
+							<th>推荐耗材名称</th>
 							<th>推荐</th>
 						</tr>
 						<tr>
 							
-							<td><a href='##'><%=resApi.getC_NAME() %></a></td>
-							<td><input type='button' value='继续推荐' onclick="nextRecommand(<%=resApi.getN_ID() %>);"/></td>
+							<td><a href='##'><%=resSupply.getNAME() %></a></td>
+							<td><input type='button' value='继续推荐' onclick="nextRecommand(<%=resSupply.getID() %>);"/></td>
 						</tr>
 					</table>
 				</div>

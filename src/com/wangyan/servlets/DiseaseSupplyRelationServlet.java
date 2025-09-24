@@ -8,45 +8,40 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.wangyan.business.Search;
-
-import javabean.API;
+import dbhelper.DBSearch;
+import javabean.Supply;
 
 /**
  * Servlet implementation class MashupApiRelation
  */
-public class MashupApiRelation extends HttpServlet {
+public class DiseaseSupplyRelationServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
        
     /**
      * @see HttpServlet#HttpServlet()
      */
-    public MashupApiRelation() {
+    public DiseaseSupplyRelationServlet() {
         super();
+        // TODO Auto-generated constructor stub
     }
 
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		//response.getWriter().append("Served at: ").append(request.getContextPath());
-		//System.out.println("shoudao!!!!");
-		String mashupId_string = request.getParameter("mashupId");
-		String mashupName = request.getParameter("mashupName");
-		int mashupId = Integer.parseInt(mashupId_string);
-		ArrayList<API> list = Search.searchMashupApiRelation(mashupId);
-		
-		request.setAttribute("apilist", list);
-		request.setAttribute("mashupName", mashupName);
-		
-		request.getRequestDispatcher("/pages/mashupDetail.jsp").forward(request, response);
+		// TODO Auto-generated method stub
+		int id = Integer.parseInt(request.getParameter("id"));
+		DBSearch dbs = new DBSearch();
+		ArrayList<Supply> supplies = dbs.getDiseaseSupplyRelation(id);
+		request.setAttribute("supplies", supplies);
+		request.getRequestDispatcher("nextSearchResult2.jsp").forward(request, response);
 	}
 
 	/**
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		doGet(request, response);
+		// TODO Auto-generated method stub
 	}
 
 }

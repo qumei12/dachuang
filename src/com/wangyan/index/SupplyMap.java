@@ -8,11 +8,11 @@ import java.util.Map;
 
 import dbhelper.DBHelper;
 
-public class APIMap {
+public class SupplyMap {
 	
-	public void setMap(Map<Integer, Integer> apiIndex_ID, Map<Integer, String> apiIndex_Name){
-		//mashupIndex_ID = new HashMap<>();
-		//mashupIndex_Name = new HashMap<>();
+	public void setMap(Map<Integer, Integer> supplyIndex_ID, Map<Integer, String> supplyIndex_Name){
+		//supplyIndex_ID = new HashMap<>();
+		//supplyIndex_Name = new HashMap<>();
 		
 		Connection connection = DBHelper.getConnection();
 		
@@ -27,8 +27,8 @@ public class APIMap {
 			
 			int i = 0;
 			while(rs.next()){
-				apiIndex_ID.put(i, rs.getInt(1));
-				apiIndex_Name.put(i, rs.getString(2));
+				supplyIndex_ID.put(i, rs.getInt(1));
+				supplyIndex_Name.put(i, rs.getString(2));
 				i++;
 			}
 			

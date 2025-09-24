@@ -1,31 +1,53 @@
 package com.wangyan.business;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
-import dbhelper.DBSearch;
-import javabean.API;
-import javabean.Mashup;
-import javabean.Mashup_json;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-public class Search {
-	public static int searchPageAmount(){
-		DBSearch dbs = new DBSearch();
-		return dbs.getPageAmount();
+import javabean.Supply;
+import javabean.Disease;
+import dbhelper.DBSearch;
+
+/**
+ * Servlet implementation class Search
+ */
+public class Search extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
+    public Search() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
 	}
-	
-	public static ArrayList<Mashup_json> searchMashupTable(int page){
-		
-		int count = 20;//每次返回10个数据
-		int startId = (page - 1) * 20;
-		//System.out.println(startId + "***");
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		String diseaseName = request.getParameter("search");
 		DBSearch dbs = new DBSearch();
-		return dbs.getMashupTable(startId, count);
-		
+		ArrayList<Disease> diseases = dbs.getDiseaseByNameFuzzy(diseaseName);
+		ArrayList<Supply> supplies = new ArrayList<Supply>();
+		if(diseases.size() > 0){
+			supplies = dbs.getDiseaseSupplyRelation(diseases.get(0).getID());
+		}
+		request.setAttribute("diseases", diseases);
+		request.setAttribute("supplies", supplies);
+		request.getRequestDispatcher("searchResult.jsp").forward(request, response);
 	}
-	
-	public static ArrayList<API> searchMashupApiRelation(int mashupId){
-		DBSearch dbs = new DBSearch();
-		ArrayList<API> list = dbs.getDiseaseSupplyRelation(mashupId);
-		return list;
-	}
+
 }

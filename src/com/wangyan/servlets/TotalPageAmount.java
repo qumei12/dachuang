@@ -8,7 +8,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.wangyan.business.Search;
+import dbhelper.DBSearch;
 
 import net.sf.json.JSONObject;
 
@@ -32,7 +32,8 @@ public class TotalPageAmount extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
 		//response.getWriter().append("Served at: ").append(request.getContextPath());
-		int amount = Search.searchPageAmount();
+		DBSearch dbs = new DBSearch();
+		int amount = dbs.getPageAmount();
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.accumulate("pageAmount", amount);
 		

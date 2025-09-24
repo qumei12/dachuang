@@ -1,20 +1,18 @@
 package javabean;
 
-import java.util.Date;
-
-public class Mashup_json {
+public class DiseaseJson {
 	private int N_ID;
 	private String C_NAME;
 	private String C_DESCRIPTION;
 	private String C_URL;
 	private String C_DATE;
 
-	public Mashup_json() {
+	public DiseaseJson() {
 		super();
 		// TODO Auto-generated constructor stub
 	}
 
-	public Mashup_json(int n_ID, String c_NAME, String c_DESCRIPTION, String c_URL, String c_DATE) {
+	public DiseaseJson(int n_ID, String c_NAME, String c_DESCRIPTION, String c_URL, String c_DATE) {
 		super();
 		N_ID = n_ID;
 		C_NAME = c_NAME;
@@ -49,7 +47,7 @@ public class Mashup_json {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Mashup_json other = (Mashup_json) obj;
+		DiseaseJson other = (DiseaseJson) obj;
 		if (C_DATE == null) {
 			if (other.C_DATE != null)
 				return false;

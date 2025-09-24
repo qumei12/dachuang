@@ -66,7 +66,7 @@ p, p>a {
 <body>
 	<div class="body">
     	<div class="pic">
-        <h1>服务推荐系统</h1>
+        <h1>耗材推荐系统</h1>
     	</div>
    		<div class="search">
         <form action="./Search" method="post">

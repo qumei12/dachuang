@@ -22,12 +22,12 @@ import org.apache.lucene.util.Version;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 
 import dbhelper.DBSearch;
-import javabean.API;
+import javabean.Supply;
 import model.LDAModel;
 import model.ModelTrainer;
 
 public class IndexUtil {
-	public void createIndex(Map<Integer, String> mashupIndex_Name){
+	public void createIndex(Map<Integer, String> diseaseIndex_Name){
 		Directory directory = null;
 		IndexWriter writer = null;
 		try {
@@ -39,7 +39,7 @@ public class IndexUtil {
 
 			Document document = null;
 
-			Set<Integer> key = mashupIndex_Name.keySet();
+			Set<Integer> key = diseaseIndex_Name.keySet();
 			Iterator<Integer> it = key.iterator();
 
 			while (it.hasNext()) {
@@ -47,7 +47,7 @@ public class IndexUtil {
 				Integer integer = (Integer) it.next();
 				document.add(new Field("id", integer + "", Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS));
 
-				String name = mashupIndex_Name.get(integer);
+				String name = diseaseIndex_Name.get(integer);
 				document.add(new Field("name", name, Field.Store.NO, Field.Index.ANALYZED));
 
 				writer.addDocument(document);
@@ -69,41 +69,41 @@ public class IndexUtil {
 	}
 
 	public void query(String str, int top_k,
-					  Map<Integer, String> mashupIndex_Name, Map<Integer,Integer> mashupIndex_ID,
-					  Map<Integer,String> apiIndex_Name, Map<Integer, Integer> apiIndex_ID,
-					  Map<Integer, List<Integer>> mashupWordsBag, Map<Integer, List<Integer>> apiWordsBag,
-					  List<API> apiList){
+					  Map<Integer, String> diseaseIndex_Name, Map<Integer,Integer> diseaseIndex_ID,
+					  Map<Integer,String> supplyIndex_Name, Map<Integer, Integer> supplyIndex_ID,
+					  Map<Integer, List<Integer>> diseaseWordsBag, Map<Integer, List<Integer>> supplyWordsBag,
+					  List<Supply> supplyList){
 
 		try {
-			// 精确匹配：只找完全匹配的mashup
-			int targetMashupId = -1;
-			for(Map.Entry<Integer, String> entry : mashupIndex_Name.entrySet()){
+			// 精确匹配：只找完全匹配的disease
+			int targetDiseaseId = -1;
+			for(Map.Entry<Integer, String> entry : diseaseIndex_Name.entrySet()){
 				if(entry.getValue().equalsIgnoreCase(str)){
-					targetMashupId = entry.getKey();
+					targetDiseaseId = entry.getKey();
 					break;
 				}
 			}
 
-			if(targetMashupId == -1){
-				System.out.println("未找到精确匹配的mashup: " + str);
+			if(targetDiseaseId == -1){
+				System.out.println("未找到精确匹配的disease: " + str);
 				return;
 			}
 
-			// 获取该mashup的多个兴趣（默认获取前3个最相关的兴趣）
-			List<InterestScore> interests = getTopInterests(targetMashupId, mashupWordsBag, 3);
+			// 获取该disease的多个兴趣（默认获取前3个最相关的兴趣）
+			List<InterestScore> interests = getTopInterests(targetDiseaseId, diseaseWordsBag, 3);
 
 			System.out.println("找到 " + interests.size() + " 个相关兴趣:");
 			for(InterestScore interestScore : interests) {
-				System.out.println(mashupIndex_Name.get(targetMashupId) + " 属于兴趣" + interestScore.interestId +
+				System.out.println(diseaseIndex_Name.get(targetDiseaseId) + " 属于兴趣" + interestScore.interestId +
 						" (排名位置: " + interestScore.position + ")");
 			}
 
-			// 基于多个兴趣推荐API
-			recommendAPIsFromMultipleInterests(interests, top_k, apiWordsBag, apiIndex_ID, apiList);
+			// 基于多个兴趣推荐Supply
+			recommendSuppliesFromMultipleInterests(interests, top_k, supplyWordsBag, supplyIndex_ID, supplyList);
 
-			System.out.println("----------------API----------------");
-			for(int i = 0; i < apiList.size(); i++){
-				System.out.println(apiList.get(i).getN_ID() + "--" + apiList.get(i).getC_NAME());
+			System.out.println("----------------Supply----------------");
+			for(int i = 0; i < supplyList.size(); i++){
+				System.out.println(supplyList.get(i).getID() + "--" + supplyList.get(i).getNAME());
 			}
 
 		} catch (Exception e) {
@@ -123,16 +123,16 @@ public class IndexUtil {
 	}
 
 	// 获取前N个最相关的兴趣
-	private List<InterestScore> getTopInterests(int id, Map<Integer, List<Integer>> mashupWordsBag, int topN){
+	private List<InterestScore> getTopInterests(int id, Map<Integer, List<Integer>> diseaseWordsBag, int topN){
 		List<InterestScore> interestScores = new ArrayList<>();
 
-		// 遍历所有兴趣，计算目标mashup在每个兴趣中的排名
-		for(Map.Entry<Integer, List<Integer>> entry : mashupWordsBag.entrySet()){
+		// 遍历所有兴趣，计算目标disease在每个兴趣中的排名
+		for(Map.Entry<Integer, List<Integer>> entry : diseaseWordsBag.entrySet()){
 			int interestId = entry.getKey();
 			List<Integer> list = entry.getValue();
 			int position = list.indexOf(id);
 
-			// 如果该mashup在该兴趣中存在
+			// 如果该disease在该兴趣中存在
 			if(position != -1){
 				interestScores.add(new InterestScore(interestId, position));
 			}
@@ -150,17 +150,17 @@ public class IndexUtil {
 		return interestScores.subList(0, Math.min(topN, interestScores.size()));
 	}
 
-	// 基于多个兴趣推荐API
-	private void recommendAPIsFromMultipleInterests(List<InterestScore> interests, int top_k,
-													Map<Integer, List<Integer>> apiWordsBag,
-													Map<Integer, Integer> apiIndex_ID,
-													List<API> apiList) {
+	// 基于多个兴趣推荐Supply
+	private void recommendSuppliesFromMultipleInterests(List<InterestScore> interests, int top_k,
+													Map<Integer, List<Integer>> supplyWordsBag,
+													Map<Integer, Integer> supplyIndex_ID,
+													List<Supply> supplyList) {
 		if(interests.isEmpty()) {
 			return;
 		}
 
 		// 使用加权方式：排名越靠前的兴趣权重越高
-		Map<Integer, Double> apiScores = new HashMap<>();
+		Map<Integer, Double> supplyScores = new HashMap<>();
 
 		for(int i = 0; i < interests.size(); i++) {
 			InterestScore interestScore = interests.get(i);
@@ -170,47 +170,47 @@ public class IndexUtil {
 			// 计算权重：排名越靠前权重越高
 			double weight = 1.0 / (position + 1);
 
-			// 获取该兴趣相关的API列表
-			List<Integer> apiListForInterest = apiWordsBag.get(interestId);
-			if(apiListForInterest != null) {
-				// 为每个API分配分数（排名越靠前分数越高）
-				for(int j = 0; j < apiListForInterest.size(); j++) {
-					int apiIndex = apiListForInterest.get(j);
-					double apiScore = weight * (1.0 / (j + 1)); // API排名权重
+			// 获取该兴趣相关的Supply列表
+			List<Integer> supplyListForInterest = supplyWordsBag.get(interestId);
+			if(supplyListForInterest != null) {
+				// 为每个Supply分配分数（排名越靠前分数越高）
+				for(int j = 0; j < supplyListForInterest.size(); j++) {
+					int supplyIndex = supplyListForInterest.get(j);
+					double supplyScore = weight * (1.0 / (j + 1)); // Supply排名权重
 
 					// 累加分数
-					apiScores.put(apiIndex, apiScores.getOrDefault(apiIndex, 0.0) + apiScore);
+					supplyScores.put(supplyIndex, supplyScores.getOrDefault(supplyIndex, 0.0) + supplyScore);
 				}
 			}
 		}
 
-		// 按分数排序API
-		List<Map.Entry<Integer, Double>> sortedApis = new ArrayList<>(apiScores.entrySet());
-		Collections.sort(sortedApis, new Comparator<Map.Entry<Integer, Double>>() {
+		// 按分数排序Supply
+		List<Map.Entry<Integer, Double>> sortedSupplys = new ArrayList<>(supplyScores.entrySet());
+		Collections.sort(sortedSupplys, new Comparator<Map.Entry<Integer, Double>>() {
 			@Override
 			public int compare(Map.Entry<Integer, Double> o1, Map.Entry<Integer, Double> o2) {
 				return o2.getValue().compareTo(o1.getValue()); // 降序排列
 			}
 		});
 
-		// 获取前top_k个API
+		// 获取前top_k个Supply
 		DBSearch dbSearch = new DBSearch();
 		int count = 0;
-		for(Map.Entry<Integer, Double> entry : sortedApis) {
+		for(Map.Entry<Integer, Double> entry : sortedSupplys) {
 			if(count >= top_k) break;
 
-			int apiIndex = entry.getKey();
-			if(apiIndex_ID.containsKey(apiIndex)) {
-				int apiId = apiIndex_ID.get(apiIndex);
-				apiList.add(dbSearch.getSupplyById(apiId));
+			int supplyIndex = entry.getKey();
+			if(supplyIndex_ID.containsKey(supplyIndex)) {
+				int supplyId = supplyIndex_ID.get(supplyIndex);
+				supplyList.add(dbSearch.getSupplyById(supplyId));
 				count++;
 			}
 		}
 	}
 
 	// 保留原来的单兴趣方法以备不时之需
-	private int getInterest(int id, Map<Integer, List<Integer>> mashupWordsBag){
-		Set<Integer> key = mashupWordsBag.keySet();
+	private int getInterest(int id, Map<Integer, List<Integer>> diseaseWordsBag){
+		Set<Integer> key = diseaseWordsBag.keySet();
 		Iterator<Integer> it = key.iterator();
 
 		int min = 100000;
@@ -218,7 +218,7 @@ public class IndexUtil {
 
 		while (it.hasNext()) {
 			Integer integer = (Integer) it.next();
-			List<Integer> list = mashupWordsBag.get(integer);
+			List<Integer> list = diseaseWordsBag.get(integer);
 			int position = list.indexOf(id);
 			if(position < min){
 				min = position;
@@ -230,33 +230,33 @@ public class IndexUtil {
 	}
 	// 在IndexUtil类中添加以下方法
 	/**
-	 * 为指定mashup推荐API，每个兴趣主题推荐一个最相关的API
-	 * @param mashupIndex mashup索引
+	 * 为指定disease推荐Supply，每个兴趣主题推荐一个最相关的Supply
+	 * @param diseaseIndex disease索引
 	 * @param interestCount 兴趣主题数量
 	 * @param ldaModel 已训练的LDA模型
-	 * @param apiIndex_ID API索引到ID的映射
-	 * @return 推荐的API列表，每个兴趣一个API
+	 * @param supplyIndex_ID Supply索引到ID的映射
+	 * @return 推荐的Supply列表，每个兴趣一个Supply
 	 */
-	public List<API> recommendOneAPIPerInterestByLDAModel(Integer mashupIndex, int interestCount,
-												LDAModel ldaModel, Map<Integer, Integer> apiIndex_ID) {
-		List<API> recommendedAPIs = new ArrayList<>();
+	public List<Supply> recommendOneSupplyPerInterestByLDAModel(Integer diseaseIndex, int interestCount,
+												LDAModel ldaModel, Map<Integer, Integer> supplyIndex_ID) {
+		List<Supply> recommendedSupplys = new ArrayList<>();
 
-		// 检查mashupIndex是否为null
-		if (mashupIndex == null) {
-			System.out.println("Mashup索引为空");
-			return recommendedAPIs;
+		// 检查diseaseIndex是否为null
+		if (diseaseIndex == null) {
+			System.out.println("Disease索引为空");
+			return recommendedSupplys;
 		}
 
-		// 确保mashupIndex在有效范围内
-		if (mashupIndex >= ldaModel.getCaseAmount()) {
-			System.out.println("Mashup索引超出范围: " + mashupIndex);
-			return recommendedAPIs;
+		// 确保diseaseIndex在有效范围内
+		if (diseaseIndex >= ldaModel.getCaseAmount()) {
+			System.out.println("Disease索引超出范围: " + diseaseIndex);
+			return recommendedSupplys;
 		}
 
 		// 获取用户对各兴趣主题的概率
 		Double[] interestProbs = new Double[ldaModel.getTopicAmount()];
 		for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
-			interestProbs[k] = ldaModel.getTheta()[mashupIndex][k];
+			interestProbs[k] = ldaModel.getTheta()[diseaseIndex][k];
 		}
 
 		// 对兴趣主题按概率排序
@@ -277,82 +277,82 @@ public class IndexUtil {
 
 		DBSearch dbSearch = new DBSearch();
 
-		// 为每个top interest推荐一个最相关的API
-		Set<Integer> selectedAPIs = new HashSet<>(); // 避免重复推荐同一个API
+		// 为每个top interest推荐一个最相关的Supply
+		Set<Integer> selectedSupplys = new HashSet<>(); // 避免重复推荐同一个Supply
 
 		for (int i = 0; i < Math.min(interestCount, ldaModel.getTopicAmount()); i++) {
 			int interestId = interestIndices.get(i);
 
-			// 在该兴趣主题中找出最相关的API
+			// 在该兴趣主题中找出最相关的Supply
 			double maxProb = -1;
-			int bestAPIIndex = -1;
+			int bestSupplyIndex = -1;
 
 			for (int j = 0; j < ldaModel.getSupplyAmount(); j++) {
-				// 确保不重复推荐已选的API
-				if (!selectedAPIs.contains(j) && ldaModel.getPhi()[interestId][j] > maxProb) {
+				// 确保不重复推荐已选的Supply
+				if (!selectedSupplys.contains(j) && ldaModel.getPhi()[interestId][j] > maxProb) {
 					maxProb = ldaModel.getPhi()[interestId][j];
-					bestAPIIndex = j;
+					bestSupplyIndex = j;
 				}
 			}
 
-			// 将API索引转换为实际API对象
-			if (bestAPIIndex != -1 && apiIndex_ID.containsKey(bestAPIIndex)) {
-				int apiId = apiIndex_ID.get(bestAPIIndex);
-				API api = dbSearch.getSupplyById(apiId);
-				if (api != null && api.getN_ID() > 0) {
-					recommendedAPIs.add(api);
-					selectedAPIs.add(bestAPIIndex); // 记录已选API避免重复
+			// 将Supply索引转换为实际Supply对象
+			if (bestSupplyIndex != -1 && supplyIndex_ID.containsKey(bestSupplyIndex)) {
+				int supplyId = supplyIndex_ID.get(bestSupplyIndex);
+				Supply supply = dbSearch.getSupplyById(supplyId);
+				if (supply != null && supply.getID() > 0) {
+					recommendedSupplys.add(supply);
+					selectedSupplys.add(bestSupplyIndex); // 记录已选Supply避免重复
 				}
 			}
 		}
 
-		return recommendedAPIs;
+		return recommendedSupplys;
 	}
 
 	// 在IndexUtil类中添加以下方法
 	/**
-	 * 为指定mashup推荐API，每个兴趣主题推荐一个最相关的API
-	 * @param mashupIndex mashup索引
+	 * 为指定disease推荐Supply，每个兴趣主题推荐一个最相关的Supply
+	 * @param diseaseIndex disease索引
 	 * @param interestCount 兴趣主题数量
-	 * @param mashupWordsBag mashup词袋数据
-	 * @param apiWordsBag API词袋数据
-	 * @param apiIndex_ID API索引到ID的映射
-	 * @return 推荐的API列表，每个兴趣一个API
+	 * @param diseaseWordsBag disease词袋数据
+	 * @param supplyWordsBag Supply词袋数据
+	 * @param supplyIndex_ID Supply索引到ID的映射
+	 * @return 推荐的Supply列表，每个兴趣一个Supply
 	 */
-	public List<API> recommendOneAPIPerInterest(Integer mashupIndex, int interestCount,
-												Map<Integer, List<Integer>> mashupWordsBag,
-												Map<Integer, List<Integer>> apiWordsBag,
-												Map<Integer, Integer> apiIndex_ID) {
-		List<API> recommendedAPIs = new ArrayList<>();
+	public List<Supply> recommendOneSupplyPerInterest(Integer diseaseIndex, int interestCount,
+												Map<Integer, List<Integer>> diseaseWordsBag,
+												Map<Integer, List<Integer>> supplyWordsBag,
+												Map<Integer, Integer> supplyIndex_ID) {
+		List<Supply> recommendedSupplys = new ArrayList<>();
 
-		// 检查mashupIndex是否为null
-		if (mashupIndex == null) {
-			System.out.println("Mashup索引为空");
-			return recommendedAPIs;
+		// 检查diseaseIndex是否为null
+		if (diseaseIndex == null) {
+			System.out.println("Disease索引为空");
+			return recommendedSupplys;
 		}
 
-		// 获取该mashup的多个兴趣（默认获取前interestCount个最相关的兴趣）
-		List<InterestScore> interests = getTopInterests(mashupIndex, mashupWordsBag, interestCount);
+		// 获取该disease的多个兴趣（默认获取前interestCount个最相关的兴趣）
+		List<InterestScore> interests = getTopInterests(diseaseIndex, diseaseWordsBag, interestCount);
 
-		// 为每个兴趣推荐一个最相关的API
+		// 为每个兴趣推荐一个最相关的Supply
 		DBSearch dbSearch = new DBSearch();
-		Set<Integer> selectedAPIs = new HashSet<>(); // 避免重复推荐同一个API
+		Set<Integer> selectedSupplys = new HashSet<>(); // 避免重复推荐同一个Supply
 
 		for (int i = 0; i < Math.min(interestCount, interests.size()); i++) {
 			InterestScore interestScore = interests.get(i);
 			int interestId = interestScore.interestId;
 
-			// 获取该兴趣相关的API列表
-			List<Integer> apiListForInterest = apiWordsBag.get(interestId);
-			if (apiListForInterest != null && !apiListForInterest.isEmpty()) {
-				// 查找第一个未被选择的API
-				for (int apiIndex : apiListForInterest) {
-					if (!selectedAPIs.contains(apiIndex) && apiIndex_ID.containsKey(apiIndex)) {
-						int apiId = apiIndex_ID.get(apiIndex);
-						API api = dbSearch.getSupplyById(apiId);
-						if (api != null && api.getN_ID() > 0) {
-							recommendedAPIs.add(api);
-							selectedAPIs.add(apiIndex); // 记录已选API避免重复
+			// 获取该兴趣相关的Supply列表
+			List<Integer> supplyListForInterest = supplyWordsBag.get(interestId);
+			if (supplyListForInterest != null && !supplyListForInterest.isEmpty()) {
+				// 查找第一个未被选择的Supply
+				for (int supplyIndex : supplyListForInterest) {
+					if (!selectedSupplys.contains(supplyIndex) && supplyIndex_ID.containsKey(supplyIndex)) {
+						int supplyId = supplyIndex_ID.get(supplyIndex);
+						Supply supply = dbSearch.getSupplyById(supplyId);
+						if (supply != null && supply.getID() > 0) {
+							recommendedSupplys.add(supply);
+							selectedSupplys.add(supplyIndex); // 记录已选Supply避免重复
 							break;
 						}
 					}
@@ -360,6 +360,6 @@ public class IndexUtil {
 			}
 		}
 
-		return recommendedAPIs;
+		return recommendedSupplys;
 	}
 }

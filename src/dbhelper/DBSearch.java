@@ -1,29 +1,26 @@
 package dbhelper;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.sql.PreparedStatement;
 
 //import com.sun.org.apache.regexp.internal.recompile;
 
-import fileout.FileOut;
-import javabean.API;
-import javabean.Mashup;
-import javabean.Mashup_json;
+import javabean.Supply;
+import javabean.Disease;
+import javabean.DiseaseJson;
 
 public class DBSearch {
 
 	public int getPageAmount() {
 		Connection connection = DBHelper.getConnection();
 
-		int MashupAmount = -1;
+		int DiseaseAmount = -1;
 
 		Statement statement;
 
@@ -33,7 +30,7 @@ public class DBSearch {
 			ResultSet rs = statement.executeQuery("select count(*) from `tb_disease`;");
 
 			while (rs.next()) {
-				MashupAmount = rs.getInt(1);
+				DiseaseAmount = rs.getInt(1);
 			}
 
 		} catch (SQLException e) {
@@ -50,19 +47,19 @@ public class DBSearch {
 
 		int pageAmount = 0;
 
-		if (MashupAmount != -1) {
-			pageAmount = MashupAmount / 20 + 1;
+		if (DiseaseAmount != -1) {
+			pageAmount = DiseaseAmount / 20 + 1;
 		}
 
 		return pageAmount;
 	}
 
-	public ArrayList<Mashup_json> getMashupTable(int startId, int count) {
+	public ArrayList<DiseaseJson> getMashupTable(int startId, int count) {
 		Connection connection = DBHelper.getConnection();
 
 		Statement statement;
 
-		ArrayList<Mashup_json> mashupList = new ArrayList<Mashup_json>();
+		ArrayList<DiseaseJson> mashupList = new ArrayList<DiseaseJson>();
 
 		try {
 			statement = connection.createStatement();
@@ -71,14 +68,15 @@ public class DBSearch {
 			ResultSet rs = statement.executeQuery(sql);
 
 			while (rs.next()) {
-				Mashup_json mashup = new Mashup_json();
+				DiseaseJson mashup = new DiseaseJson();
 				mashup.setN_ID(rs.getInt(1));
 				mashup.setC_NAME(rs.getString(2));
 				mashup.setC_DESCRIPTION(rs.getString(3));
-				mashup.setC_URL(rs.getString(4));
-				Date date = rs.getDate(5);
-				String date_s = (date.getYear() + 1900) + "-" + (date.getMonth() + 1) + "-" + date.getDate();
-				mashup.setC_DATE(date_s);
+				// 根据数据库实际结构，表中可能没有C_URL和C_DATE字段
+				// mashup.setC_URL(rs.getString(4));
+				// Date date = rs.getDate(5);
+				// String date_s = (date.getYear() + 1900) + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+				// mashup.setC_DATE(date_s);
 
 				mashupList.add(mashup);
 			}
@@ -97,12 +95,12 @@ public class DBSearch {
 		return mashupList;
 	}
 
-	public ArrayList<API> getDiseaseSupplyRelation(int diseaseId) {
+	public ArrayList<Supply> getDiseaseSupplyRelation(int diseaseId) {
 		Connection connection = DBHelper.getConnection();
 
 		Statement statement;
 
-		ArrayList<API> list = new ArrayList<API>();
+		ArrayList<Supply> list = new ArrayList<Supply>();
 
 		try {
 			statement = connection.createStatement();
@@ -113,15 +111,15 @@ public class DBSearch {
 			ResultSet rs = statement.executeQuery(sql);
 
 			while (rs.next()) {
-				API api = new API();
-				api.setN_ID(rs.getInt(1));
-				api.setC_NAME(rs.getString(4));
-				api.setC_DESCRIPTION(rs.getString(5));
-				api.setC_URL(rs.getString(6));
-				api.setN_MASHUP_ID(rs.getInt(2));
-				api.setN_MASHUP_API_ID(rs.getInt(3));
+				Supply supply = new Supply();
+				supply.setID(rs.getInt(1));
+				supply.setNAME(rs.getString(4));
+				supply.setDESCRIPTION(rs.getString(5));
+				supply.setURL(rs.getString(6));
+				supply.setDISEASE_ID(rs.getInt(2));
+				supply.setSUPPLY_ID(rs.getInt(3));
 
-				list.add(api);
+				list.add(supply);
 			}
 			
 			System.out.println("查询结果数量: " + list.size() + " (病种ID: " + diseaseId + ")"); // 添加调试信息
@@ -172,14 +170,14 @@ public class DBSearch {
 		return map;
 	}
 
-	public API getSupplyById(int id) {
+	public Supply getSupplyById(int id) {
 		Connection connection = DBHelper.getConnection();
 
 		Statement statement = null;
 
 		String sql = "select * from `tb_supply` where n_id=" + id + ";";
 
-		API api = new API();
+		Supply supply = new Supply();
 
 		try {
 			statement = connection.createStatement();
@@ -187,10 +185,10 @@ public class DBSearch {
 			ResultSet rs = statement.executeQuery(sql);
 
 			while (rs.next()) {
-				api.setN_ID(rs.getInt(1));
-				api.setC_NAME(rs.getString(4));
-				api.setC_DESCRIPTION(rs.getString(5));
-				api.setC_URL(rs.getString(6));
+				supply.setID(rs.getInt(1));
+				supply.setNAME(rs.getString(4));
+				supply.setDESCRIPTION(rs.getString(5));
+				supply.setURL(rs.getString(6));
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -204,17 +202,17 @@ public class DBSearch {
 			}
 		}
 
-		return api;
+		return supply;
 	}
 
-	public Mashup getMashupById(int id) {
+	public Disease getMashupById(int id) {
 		Connection connection = DBHelper.getConnection();
 
 		Statement statement = null;
 
 		String sql = "select * from `tb_disease` where n_id=" + id + ";";
 
-		Mashup mashup = new Mashup();
+		Disease disease = new Disease();
 
 		try {
 			statement = connection.createStatement();
@@ -222,11 +220,12 @@ public class DBSearch {
 			ResultSet rs = statement.executeQuery(sql);
 
 			while (rs.next()) {
-				mashup.setN_ID(rs.getInt(1));
-				mashup.setC_NAME(rs.getString(2));
-				mashup.setC_DESCRIPTION(rs.getString(3));
-				mashup.setC_URL(rs.getString(4));
-				mashup.setD_DATE(rs.getDate(5));
+				disease.setID(rs.getInt(1));
+				disease.setNAME(rs.getString(2));
+				disease.setDESCRIPTION(rs.getString(3));
+				// 根据数据库实际结构，表中可能没有URL和DATE字段
+				// disease.setURL(rs.getString(4));
+				// disease.setDATE(rs.getDate(5));
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -240,13 +239,13 @@ public class DBSearch {
 			}
 		}
 
-		return mashup;
+		return disease;
 	}
 
-	public Mashup getMashupByName(String name) {
+	public Disease getMashupByName(String name) {
 		Connection connection = DBHelper.getConnection();
 		PreparedStatement statement = null;
-		Mashup mashup = new Mashup();
+		Disease disease = new Disease();
 
 		try {
 			// 使用PreparedStatement防止SQL注入
@@ -257,13 +256,14 @@ public class DBSearch {
 			ResultSet rs = statement.executeQuery();
 
 			if (rs.next()) {
-				mashup.setN_ID(rs.getInt(1));
-				mashup.setC_NAME(rs.getString(2));
-				mashup.setC_DESCRIPTION(rs.getString(3));
-				mashup.setC_URL(rs.getString(4));
-				mashup.setD_DATE(rs.getDate(5));
+				disease.setID(rs.getInt(1));
+				disease.setNAME(rs.getString(2));
+				disease.setDESCRIPTION(rs.getString(3));
+				// 根据数据库实际结构，表中可能没有URL和DATE字段
+				// disease.setURL(rs.getString(4));
+				// disease.setDATE(rs.getDate(5));
 			} else {
-				mashup.setN_ID(-1);
+				disease.setID(-1);
 			}
 
 		} catch (SQLException e) {
@@ -281,7 +281,7 @@ public class DBSearch {
 			}
 		}
 
-		return mashup.getN_ID() != -1 ? mashup : null;
+		return disease.getID() != -1 ? disease : null;
 	}
 	
 	/**
@@ -289,10 +289,10 @@ public class DBSearch {
 	 * @param name 病种名称关键词
 	 * @return 病种列表
 	 */
-	public ArrayList<Mashup> getDiseaseByNameFuzzy(String name) {
+	public ArrayList<Disease> getDiseaseByNameFuzzy(String name) {
 		Connection connection = DBHelper.getConnection();
 		PreparedStatement statement = null;
-		ArrayList<Mashup> diseases = new ArrayList<Mashup>();
+		ArrayList<Disease> diseases = new ArrayList<Disease>();
 
 		try {
 			// 使用PreparedStatement防止SQL注入
@@ -303,12 +303,13 @@ public class DBSearch {
 			ResultSet rs = statement.executeQuery();
 
 			while (rs.next()) {
-				Mashup disease = new Mashup();
-				disease.setN_ID(rs.getInt(1));
-				disease.setC_NAME(rs.getString(2));
-				disease.setC_DESCRIPTION(rs.getString(3));
-				disease.setC_URL(rs.getString(4));
-				disease.setD_DATE(rs.getDate(5));
+				Disease disease = new Disease();
+				disease.setID(rs.getInt(1));
+				disease.setNAME(rs.getString(2));
+				disease.setDESCRIPTION(rs.getString(3));
+				// 根据数据库实际结构，表中可能没有URL和DATE字段
+				// disease.setURL(rs.getString(4));
+				// disease.setDATE(rs.getDate(5));
 				diseases.add(disease);
 			}
 

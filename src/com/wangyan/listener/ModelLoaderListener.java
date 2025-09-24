@@ -37,6 +37,10 @@ public class ModelLoaderListener implements ServletContextListener {
         long startTime = System.currentTimeMillis();
         
         try {
+            // 设置模型路径为相对于Web应用程序上下文的路径
+            String contextPath = event.getServletContext().getRealPath("/");
+            ModelTrainer.setContextPath(contextPath);
+            
             // 尝试加载预训练模型
             System.out.println("尝试加载预训练模型...");
             ldaModel = ModelTrainer.loadPretrainedModel();

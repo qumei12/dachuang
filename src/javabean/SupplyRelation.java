@@ -1,15 +1,15 @@
 package javabean;
 
-public class Mashup_API {
+public class SupplyRelation {
 	private int N_ID;
 	private int N_MASHUP_ID;
 	
-	public Mashup_API() {
+	public SupplyRelation() {
 		super();
 		// TODO Auto-generated constructor stub
 	}
 
-	public Mashup_API(int n_ID, int n_MASHUP_ID) {
+	public SupplyRelation(int n_ID, int n_MASHUP_ID) {
 		super();
 		N_ID = n_ID;
 		N_MASHUP_ID = n_MASHUP_ID;
@@ -48,7 +48,7 @@ public class Mashup_API {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Mashup_API other = (Mashup_API) obj;
+		SupplyRelation other = (SupplyRelation) obj;
 		if (N_ID != other.N_ID)
 			return false;
 		if (N_MASHUP_ID != other.N_MASHUP_ID)

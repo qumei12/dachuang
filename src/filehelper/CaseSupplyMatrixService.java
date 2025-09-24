@@ -9,28 +9,28 @@ import java.util.List;
 
 import dbhelper.DBHelper;
 
-public class GetUserService {
+public class CaseSupplyMatrixService {
 	
-	public static Integer[][] getUsersServices(){
+	public static Integer[][] getCaseSupplyMatrix(){
 		
 		double trainset = 1;
 		
 		GetMA gm = new GetMA();
-		int[][] MA = gm.getArrayMA();
+		int[][] matrix = gm.getCaseSupplyMatrix();
 		
-		int row = (int)(MA.length * trainset);
+		int row = (int)(matrix.length * trainset);
 		
-		int[][] trainMA = gm.getTrainSet(MA, row);
-		//int[][] testMA = gm.getTestSet(MA, row);
-		Integer[][] UsersServices = new Integer[trainMA.length][trainMA[0].length];
+		int[][] trainMatrix = gm.getTrainSet(matrix, row);
+		//int[][] testMatrix = gm.getTestSet(matrix, row);
+		Integer[][] caseSupplyMatrix = new Integer[trainMatrix.length][trainMatrix[0].length];
 		
-		for(int i = 0;i < UsersServices.length;i++){
-			for(int j = 0;j < UsersServices[i].length;j++){
-				UsersServices[i][j] = trainMA[i][j];
+		for(int i = 0;i < caseSupplyMatrix.length;i++){
+			for(int j = 0;j < caseSupplyMatrix[i].length;j++){
+				caseSupplyMatrix[i][j] = trainMatrix[i][j];
 			}
 		}
 		
-		return UsersServices;
+		return caseSupplyMatrix;
 		
 	}
 	
@@ -55,7 +55,7 @@ public class GetUserService {
 			// 获取所有病案的ID列表
 			List<Integer> allCaseIds = new ArrayList<>();
 			GetMA gm = new GetMA();
-			int[][] MA = gm.getArrayMA();
+			int[][] matrix = gm.getCaseSupplyMatrix();
 			
 			Statement statement2 = connection.createStatement();
 			ResultSet rs2 = statement2.executeQuery("SELECT N_ID FROM tb_case ORDER BY N_ID");

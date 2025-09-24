@@ -17,10 +17,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import com.wangyan.index.APIMap;
+import com.wangyan.index.SupplyMap;
 
 import dbhelper.DBSearch;
-import javabean.API;
+import javabean.Supply;
 import model.LDAModel;
 import model.ModelTrainer;
 
@@ -63,7 +63,7 @@ public class nextSearch extends HttpServlet {
 		// 初始化索引映射
 		supplyIndex_ID = new HashMap<>();
 		supplyIndex_Name = new HashMap<>();
-		new APIMap().setMap(supplyIndex_ID, supplyIndex_Name);
+		new SupplyMap().setMap(supplyIndex_ID, supplyIndex_Name);
 	}
 
 	/**
@@ -107,10 +107,10 @@ public class nextSearch extends HttpServlet {
 		try {
 			// 获取当前耗材信息
 			DBSearch dbs = new DBSearch();
-			API currentSupply = dbs.getSupplyById(supplyId);
+			Supply currentSupply = dbs.getSupplyById(supplyId);
 			
 			// 为当前耗材推荐相关的其他耗材
-			ArrayList<API> recommandSupplyList = new ArrayList<>();
+			ArrayList<Supply> recommandSupplyList = new ArrayList<>();
 			
 			// 根据是否提供了兴趣主题ID来决定推荐策略
 			// 优先使用明确指定的兴趣主题ID
@@ -184,8 +184,8 @@ public class nextSearch extends HttpServlet {
 	 * @param excludeSupplyId 需要排除的耗材ID
 	 * @return 推荐的耗材列表
 	 */
-	private ArrayList<API> recommand(int diseaseIndex, int excludeSupplyId) {
-		ArrayList<API> recommandSupplyList = new ArrayList<>();
+	private ArrayList<Supply> recommand(int diseaseIndex, int excludeSupplyId) {
+		ArrayList<Supply> recommandSupplyList = new ArrayList<>();
 		
 		try {
 			// 获取病种的TopK兴趣主题
@@ -200,10 +200,10 @@ public class nextSearch extends HttpServlet {
 				for(int supplyIndex : recommandSupplies) {
 					int supplyId = supplyIndex_ID.get(supplyIndex);
 					if(supplyId != excludeSupplyId && !addedSupplyIds.contains(supplyId)) {
-						API supply = new DBSearch().getSupplyById(supplyId);
+						Supply supply = new DBSearch().getSupplyById(supplyId);
 						recommandSupplyList.add(supply);
 						addedSupplyIds.add(supplyId);
-						System.out.println("为兴趣主题 " + interestIndex + " 推荐耗材: " + supply.getC_NAME());
+						System.out.println("为兴趣主题 " + interestIndex + " 推荐耗材: " + supply.getNAME());
 						break;
 					}
 				}
@@ -221,8 +221,8 @@ public class nextSearch extends HttpServlet {
 	 * @param excludeSupplyId 需要排除的耗材ID
 	 * @return 推荐的耗材列表
 	 */
-	private ArrayList<API> recommandByInterest(int interestId, int excludeSupplyId) {
-		ArrayList<API> recommandSupplyList = new ArrayList<>();
+	private ArrayList<Supply> recommandByInterest(int interestId, int excludeSupplyId) {
+		ArrayList<Supply> recommandSupplyList = new ArrayList<>();
 		
 		try {
 			int[] recommandSupplies = getTopSupply(interestId, 10); // 获取该兴趣主题下的Top10耗材
@@ -232,10 +232,10 @@ public class nextSearch extends HttpServlet {
 			for(int supplyIndex : recommandSupplies) {
 				int supplyId = supplyIndex_ID.get(supplyIndex);
 				if(supplyId != excludeSupplyId && !addedSupplyIds.contains(supplyId)) {
-					API supply = new DBSearch().getSupplyById(supplyId);
+					Supply supply = new DBSearch().getSupplyById(supplyId);
 					recommandSupplyList.add(supply);
 					addedSupplyIds.add(supplyId);
-					System.out.println("为兴趣主题 " + interestId + " 推荐耗材: " + supply.getC_NAME());
+					System.out.println("为兴趣主题 " + interestId + " 推荐耗材: " + supply.getNAME());
 					
 					// 最多推荐3个耗材
 					if(recommandSupplyList.size() >= 3) {
@@ -255,8 +255,8 @@ public class nextSearch extends HttpServlet {
 	 * @param excludeSupplyId 需要排除的耗材ID
 	 * @return 推荐的耗材列表
 	 */
-	private ArrayList<API> recommandDefault(int excludeSupplyId) {
-		ArrayList<API> recommandSupplyList = new ArrayList<>();
+	private ArrayList<Supply> recommandDefault(int excludeSupplyId) {
+		ArrayList<Supply> recommandSupplyList = new ArrayList<>();
 		
 		try {
 			// 获取供应关系矩阵
@@ -307,11 +307,11 @@ public class nextSearch extends HttpServlet {
 					if(count >= 3) break; // 最多推荐3个
 					
 					int supplyId = supplyIndex_ID.get(similarity.index);
-					API supply = new DBSearch().getSupplyById(supplyId);
-					if(supply != null && supply.getN_ID() > 0) {
+					Supply supply = new DBSearch().getSupplyById(supplyId);
+					if(supply != null && supply.getID() > 0) {
 						recommandSupplyList.add(supply);
 						count++;
-						System.out.println("默认推荐耗材: " + supply.getC_NAME() + " (相似度: " + similarity.similarity + ")");
+						System.out.println("默认推荐耗材: " + supply.getNAME() + " (相似度: " + similarity.similarity + ")");
 					}
 				}
 			}

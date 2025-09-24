@@ -1,11 +1,7 @@
 package model;
 
-import filehelper.FileUtil;
-import filehelper.GetUserService;
+import filehelper.CaseSupplyMatrixService;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
 
 
@@ -48,7 +44,7 @@ public class LDAModel {
 	}
 
 	public void initializeLDAModel() {
-		CasesSupplies = GetUserService.getUsersServices();  // 获取病案-耗材矩阵
+		CasesSupplies = CaseSupplyMatrixService.getCaseSupplyMatrix();  // 获取病案-耗材矩阵
 		caseAmount = CasesSupplies.length;
 		supplyAmount = CasesSupplies[0].length;
 		
@@ -194,7 +190,7 @@ public class LDAModel {
 		}
 	}
 	
-	//Map<Integer, List<apiindex>>
+	//Map<Integer, List<supplyIndex>>
 	public Map<Integer, List<Integer>> getAPIWordsBag(){
 		int top = 20;
 		Map<Integer, List<Integer>> map = new HashMap<Integer, List<Integer>>();

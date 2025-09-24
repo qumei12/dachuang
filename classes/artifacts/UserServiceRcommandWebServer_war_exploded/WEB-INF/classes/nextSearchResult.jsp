@@ -1,14 +1,14 @@
 <%@page import="java.util.List"%>
-<%@page import="javabean.Mashup"%>
+<%@page import="javabean.Disease"%>
 <%@ page language="java" contentType="text/html; charset=utf-8"
 	pageEncoding="utf-8"%>
 <%@page import="java.util.ArrayList"%>
-<%@page import="javabean.API"%>
+<%@page import="javabean.Supply"%>
 <!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>Api推荐结果</title>
+<title>耗材推荐结果</title>
 <style type="text/css">
 body {
 	font-family: Georgia, "Times New Roman", Times, serif;
@@ -187,10 +187,10 @@ p, p>a {
 <script type="text/javascript" src='jquery-1.12.2.js'></script>
 <script type="text/javascript">
 	function showTable(type) {
-		if (type == 'Mashup') {
+		if (type == 'Disease') {
 			$('#apiTable').css('display', 'none');
 			$('#mashupTable').css('display', 'block');
-		} else if (type == 'API') {
+		} else if (type == 'Supply') {
 			$('#apiTable').css('display', 'block');
 			$('#mashupTable').css('display', 'none');
 		}
@@ -208,7 +208,7 @@ p, p>a {
 <body>
 	<header class='header'>
 		<div id='title'>
-			<h1>Api推荐结果</h1>
+			<h1>耗材推荐结果</h1>
 		</div>
 	</header>
 	<div class='content'>
@@ -226,14 +226,14 @@ p, p>a {
 				
 				<%
 					// 获取推荐结果
-					ArrayList<API> recommandSupplyList = (ArrayList<API>) request.getAttribute("recommandSupplyList");
-					API currentSupply = (API) request.getAttribute("currentSupply");
+					ArrayList<Supply> recommandSupplyList = (ArrayList<Supply>) request.getAttribute("recommandSupplyList");
+					Supply currentSupply = (Supply) request.getAttribute("currentSupply");
 					
 					// 显示当前耗材信息
 					if(currentSupply != null) {
 				%>
 				<div style="display:block">
-					<div><h2>当前耗材: <%= currentSupply.getC_NAME() %></h2></div>
+					<div><h2>当前耗材: <%= currentSupply.getNAME() %></h2></div>
 				</div>
 				<%
 					}
@@ -254,17 +254,17 @@ p, p>a {
 			<tbody>
 				<%
 					if(recommandSupplyList != null && !recommandSupplyList.isEmpty()) {
-						for(API recommandApi : recommandSupplyList) {
+						for(Supply recommandSupply : recommandSupplyList) {
 				%>
 				<tr>
 					<td>
-						<a href='<%= recommandApi.getC_URL() != null && !recommandApi.getC_URL().isEmpty() ? recommandApi.getC_URL() : "#" %>' target="_blank">
-							<%= recommandApi.getC_NAME() %>
+						<a href='<%= recommandSupply.getURL() != null && !recommandSupply.getURL().isEmpty() ? recommandSupply.getURL() : "#" %>' target="_blank">
+							<%= recommandSupply.getNAME() %>
 						</a>
 					</td>
 					<td>
 						<input type='button' class="btn-recommend" value='替换' 
-							onclick="replaceSupply(<%=recommandApi.getN_ID() %>);"/>
+							onclick="replaceSupply(<%=recommandSupply.getID() %>);"/>
 					</td>
 				</tr>
 				<%

@@ -23,7 +23,7 @@
     <description></description>
     <display-name>MashupTable</display-name>
     <servlet-name>MashupTable</servlet-name>
-    <servlet-class>com.wangyan.servlets.MashupTable</servlet-class>
+    <servlet-class>com.wangyan.servlets.DiseaseTable</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>MashupTable</servlet-name>
@@ -33,7 +33,7 @@
     <description></description>
     <display-name>MashupApiRelation</display-name>
     <servlet-name>MashupApiRelation</servlet-name>
-    <servlet-class>com.wangyan.servlets.MashupApiRelation</servlet-class>
+    <servlet-class>com.wangyan.servlets.DiseaseSupplyRelationServlet</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>MashupApiRelation</servlet-name>

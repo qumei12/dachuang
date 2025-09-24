@@ -86,8 +86,8 @@
 	<h2>病种耗材推荐结果</h2>
 
 	<%
-		Mashup disease = (Mashup) request.getAttribute("disease");
-		ArrayList<API> supplyList = (ArrayList<API>) request.getAttribute("supplyList");
+		Disease disease = (Disease) request.getAttribute("disease");
+		ArrayList<Supply> supplyList = (ArrayList<Supply>) request.getAttribute("supplyList");
 		Integer diseaseIndex = (Integer) request.getAttribute("diseaseIndex");
 		Map<Integer, Integer> supplyToInterestMap = (Map<Integer, Integer>) request.getAttribute("supplyToInterestMap");
 	%>
@@ -95,10 +95,10 @@
 	<% if (disease != null) { %>
 	<div class="disease-info">
 		<h3>病种信息</h3>
-		<p><strong>drg编码:</strong> <%= disease.getC_NAME() %></p>
-		<p><strong>drg名称:</strong> <%= disease.getC_DESCRIPTION() != null ? disease.getC_DESCRIPTION() : "无描述" %></p>
-		<% if (disease.getC_URL() != null && !disease.getC_URL().isEmpty()) { %>
-		<p><strong>网址:</strong> <a href="<%= disease.getC_URL() %>" target="_blank"><%= disease.getC_URL() %></a></p>
+		<p><strong>drg编码:</strong> <%= disease.getNAME() %></p>
+		<p><strong>drg名称:</strong> <%= disease.getDESCRIPTION() != null ? disease.getDESCRIPTION() : "无描述" %></p>
+		<% if (disease.getURL() != null && !disease.getURL().isEmpty()) { %>
+		<p><strong>网址:</strong> <a href="<%= disease.getURL() %>" target="_blank"><%= disease.getURL() %></a></p>
 		<% } %>
 	</div>
 	<% } %>
@@ -113,14 +113,14 @@
 			<th>价格</th>
 			<th class="action-column">操作</th>
 		</tr>
-		<% for (API supply : supplyList) { %>
-		<tr data-supply="<%= supply.getN_ID() %>">
-			<td><%= supply.getN_ID() %></td>
-			<td><%= supply.getC_NAME() %></td>
-			<td><%= supply.getC_DESCRIPTION() != null ? supply.getC_DESCRIPTION() : "无描述" %></td>
+		<% for (Supply supply : supplyList) { %>
+		<tr data-supply="<%= supply.getID() %>">
+			<td><%= supply.getID() %></td>
+			<td><%= supply.getNAME() %></td>
+			<td><%= supply.getDESCRIPTION() != null ? supply.getDESCRIPTION() : "无描述" %></td>
 			<td>
-				<% if (supply.getC_URL() != null && !supply.getC_URL().isEmpty()) { %>
-					<a href="<%= supply.getC_URL() %>" target="_blank"><%= supply.getC_URL() %></a>
+				<% if (supply.getURL() != null && !supply.getURL().isEmpty()) { %>
+					<a href="<%= supply.getURL() %>" target="_blank"><%= supply.getURL() %></a>
 				<% } else { %>
 					无网址
 				<% } %>
@@ -128,7 +128,7 @@
 			<td class="action-column">
 				<%
 					// 获取当前行号（从0开始）
-					int rowIndex = ((List<API>) supplyList).indexOf(supply);
+					int rowIndex = ((List<Supply>) supplyList).indexOf(supply);
 					
 					// 获取行对应的主题ID
 					int interestId = -1;
@@ -138,7 +138,7 @@
 						interestId = rowToInterestList.get(rowIndex);
 					}
 				%>
-				<button class="continue-button" onclick="continueRecommendation(<%= supply.getN_ID() %>, <%= diseaseIndex != null ? diseaseIndex : -1 %>, <%= interestId %>, <%= rowIndex %>)">继续推荐</button>
+				<button class="continue-button" onclick="continueRecommendation(<%= supply.getID() %>, <%= diseaseIndex != null ? diseaseIndex : -1 %>, <%= interestId %>, <%= rowIndex %>)">继续推荐</button>
 			</td>
 		</tr>
 		<% } %>

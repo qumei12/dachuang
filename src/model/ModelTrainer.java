@@ -3,13 +3,36 @@ package model;
 import java.io.*;
 import java.util.*;
 
-import filehelper.GetUserService;
-
 public class ModelTrainer {
-    private static final String MODEL_DIR = "D:/dachuang/models";
-    private static final String PHI_FILE = MODEL_DIR + "/phi.dat";
-    private static final String THETA_FILE = MODEL_DIR + "/theta.dat";
-    private static final String CONFIG_FILE = MODEL_DIR + "/config.dat";
+    private static String MODEL_DIR = "models";
+    private static String PHI_FILE = MODEL_DIR + "/phi.dat";
+    private static String THETA_FILE = MODEL_DIR + "/theta.dat";
+    private static String CONFIG_FILE = MODEL_DIR + "/config.dat";
+    
+    /**
+     * 设置模型目录，使用相对于项目根目录的路径
+     * @param contextPath Web应用程序上下文路径
+     */
+    public static void setContextPath(String contextPath) {
+        // 获取项目根目录路径
+        File contextDir = new File(contextPath);
+
+        File projectRootDir = contextDir.getParentFile().getParentFile().getParentFile();
+        
+        // 确保路径分隔符统一并添加末尾斜杠
+        String projectRootPath = projectRootDir.getAbsolutePath().replace("\\", "/");
+        if (!projectRootPath.endsWith("/")) {
+            projectRootPath += "/";
+        }
+        
+        // 设置模型目录为项目根目录下的models目录
+        MODEL_DIR = projectRootPath + "models";
+        PHI_FILE = MODEL_DIR + "/phi.dat";
+        THETA_FILE = MODEL_DIR + "/theta.dat";
+        CONFIG_FILE = MODEL_DIR + "/config.dat";
+        
+        System.out.println("模型目录已设置为: " + MODEL_DIR);
+    }
     
     /**
      * 预训练LDA模型并保存到文件

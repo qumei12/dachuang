@@ -17,7 +17,7 @@ import dbhelper.DBHelper;
 
 public class GetMA {
 	
-	public int[][] getArrayMA(){
+	public int[][] getCaseSupplyMatrix(){
 		Connection connection = DBHelper.getConnection();
 		List<String> caseList = new ArrayList<String>();     // 病例列表
 		List<String> supplyList = new ArrayList<String>();   // 耗材列表
@@ -71,7 +71,7 @@ public class GetMA {
 		}
 		
 		// 创建病例-耗材矩阵
-		int[][] MA = new int[caseAmount][supplyAmount];
+		int[][] caseSupplyMatrix = new int[caseAmount][supplyAmount];
 		
 		try {
 			statement = connection.createStatement();
@@ -86,7 +86,7 @@ public class GetMA {
 					String supplyName = rs.getString(1);
 					int index = supplyList.indexOf(supplyName);
 					if(index != -1){
-						MA[i][index] = 1;
+						caseSupplyMatrix[i][index] = 1;
 					}
 				}
 			}
@@ -96,28 +96,28 @@ public class GetMA {
 			e.printStackTrace();
 		}
 		
-		return MA;
+		return caseSupplyMatrix;
 	}
 	
-	public int[][] getTrainSet(int[][] MA, int row) {
+	public int[][] getTrainSet(int[][] matrix, int row) {
 		// TODO Auto-generated method stub
-		int[][] trainMA = new int[row][MA[0].length];
+		int[][] trainMatrix = new int[row][matrix[0].length];
 		for(int i = 0; i < row; i++) {
-			for(int j = 0; j < MA[i].length; j++) {
-				trainMA[i][j] = MA[i][j];
+			for(int j = 0; j < matrix[i].length; j++) {
+				trainMatrix[i][j] = matrix[i][j];
 			}
 		}
-		return trainMA;
+		return trainMatrix;
 	}
 	
-	public int[][] getTestSet(int[][] MA, int row) {
+	public int[][] getTestSet(int[][] matrix, int row) {
 		// TODO Auto-generated method stub
-		int[][] testMA = new int[MA.length - row][MA[0].length];
-		for(int i = row; i < MA.length; i++) {
-			for(int j = 0; j < MA[i].length; j++) {
-				testMA[i - row][j] = MA[i][j];
+		int[][] testMatrix = new int[matrix.length - row][matrix[0].length];
+		for(int i = row; i < matrix.length; i++) {
+			for(int j = 0; j < matrix[i].length; j++) {
+				testMatrix[i - row][j] = matrix[i][j];
 			}
 		}
-		return testMA;
+		return testMatrix;
 	}
 }

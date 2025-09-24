@@ -13,12 +13,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import com.wangyan.index.APIMap;
+import com.wangyan.index.SupplyMap;
 import com.wangyan.index.IndexUtil;
-import com.wangyan.index.MashupMap;
+import com.wangyan.index.DiseaseMap;
 
-import javabean.API;
-import javabean.Mashup;
+import javabean.Supply;
+import javabean.Disease;
 import model.LDAModel;
 import model.ModelTrainer;
 import dbhelper.DBSearch;
@@ -88,11 +88,11 @@ public class Search extends HttpServlet {
 
 		diseaseIndex_ID = new HashMap<>();
 		diseaseIndex_Name = new HashMap<>();
-		new MashupMap().setMap(diseaseIndex_ID, diseaseIndex_Name);
+		new DiseaseMap().setMap(diseaseIndex_ID, diseaseIndex_Name);
 
 		supplyIndex_ID = new HashMap<>();
 		supplyIndex_Name = new HashMap<>();
-		new APIMap().setMap(supplyIndex_ID, supplyIndex_Name);
+		new SupplyMap().setMap(supplyIndex_ID, supplyIndex_Name);
 
 		iu = new IndexUtil();
 		iu.createIndex(diseaseIndex_Name);
@@ -121,7 +121,7 @@ public class Search extends HttpServlet {
 
 			// 首先验证病种是否存在（精确匹配）
 			DBSearch dbs = new DBSearch();
-			Mashup disease = dbs.getMashupByName(diseaseName);
+			Disease disease = dbs.getMashupByName(diseaseName);
 			
 			if (disease == null) {
 				// 如果精确匹配失败，尝试模糊搜索
@@ -150,7 +150,7 @@ public class Search extends HttpServlet {
 			int dynamicTopK = DISEASE_TOPK_CONFIG.getOrDefault(diseaseName, DEFAULT_TOPK);
 			
 			// 使用IndexUtil的推荐方法进行推荐（使用LDA模型）
-			List<API> recommandSupplyList = iu.recommendOneAPIPerInterestByLDAModel(
+			List<Supply> recommandSupplyList = iu.recommendOneSupplyPerInterestByLDAModel(
 				diseaseIndex, 
 				dynamicTopK,
 				ldaModel,
@@ -160,14 +160,14 @@ public class Search extends HttpServlet {
 			// 如果没有推荐到耗材
 			if (recommandSupplyList == null || recommandSupplyList.isEmpty()) {
 				request.setAttribute("disease", disease);
-				request.setAttribute("supplyList", new ArrayList<API>());
+				request.setAttribute("supplyList", new ArrayList<Supply>());
 				request.setAttribute("diseaseIndex", diseaseIndex);
 				request.getRequestDispatcher("searchResult.jsp").forward(request, response);
 				return;
 			}
 			
 			// 将推荐结果转换为ArrayList
-			ArrayList<API> limitedSupplyList = new ArrayList<>(recommandSupplyList);
+			ArrayList<Supply> limitedSupplyList = new ArrayList<>(recommandSupplyList);
 			
 			// 创建耗材索引到兴趣主题的映射
 			Map<Integer, Integer> supplyToInterestMap = new HashMap<>();
@@ -195,14 +195,14 @@ public class Search extends HttpServlet {
 			int[] interestIds = new int[limitedSupplyList.size()];
 			for (int i = 0; i < Math.min(dynamicTopK, limitedSupplyList.size()); i++) {
 				int interestId = interestIndices.get(i);
-				API supply = limitedSupplyList.get(i);
+				Supply supply = limitedSupplyList.get(i);
 				System.out.println("  兴趣主题 " + interestId + " - 概率: " + String.format("%.6f", interestProbs[interestId]));
-				System.out.println("    推荐耗材: \"" + supply.getC_NAME() + "\"");
+				System.out.println("    推荐耗材: \"" + supply.getNAME() + "\"");
 				
 				// 通过supplyIndex_ID查找耗材索引
 				Integer supplyIndex = null;
 				for (Map.Entry<Integer, Integer> entry : supplyIndex_ID.entrySet()) {
-					if (entry.getValue().equals(supply.getN_ID())) {
+					if (entry.getValue().equals(supply.getID())) {
 						supplyIndex = entry.getKey();
 						break;
 					}
@@ -280,9 +280,9 @@ public class Search extends HttpServlet {
 			
 			// 首先尝试精确匹配
 			DBSearch dbs = new DBSearch();
-			Mashup disease = dbs.getMashupByName(diseaseName);
+			Disease disease = dbs.getMashupByName(diseaseName);
 			
-			if (disease != null && disease.getN_ID() != -1) {
+			if (disease != null && disease.getID() != -1) {
 				// 精确匹配成功，重定向到 doGet 方法处理
 				String redirectURL = "./Search?search=" + java.net.URLEncoder.encode(diseaseName, "UTF-8");
 				response.sendRedirect(redirectURL);
@@ -291,7 +291,7 @@ public class Search extends HttpServlet {
 			
 			// 如果精确匹配失败，执行模糊搜索
 			System.out.println("精确匹配失败，执行病种名称模糊搜索: " + diseaseName);
-			ArrayList<Mashup> diseases = dbs.getDiseaseByNameFuzzy(diseaseName);
+			ArrayList<Disease> diseases = dbs.getDiseaseByNameFuzzy(diseaseName);
 			
 			if(diseases == null || diseases.isEmpty()) {
 				System.out.println("未检索到相关病种");
@@ -332,15 +332,15 @@ public class Search extends HttpServlet {
 			}
 			
 			DBSearch dbs = new DBSearch();
-			API newSupply = dbs.getSupplyById(replaceSupplyId);
+			Supply newSupply = dbs.getSupplyById(replaceSupplyId);
 			
 			// 创建包含所有原始耗材的supplyList，并替换指定位置的耗材
-			ArrayList<API> supplyList = new ArrayList<>();
+			ArrayList<Supply> supplyList = new ArrayList<>();
 			
 			// 从会话中获取原始的supplyList
 			HttpSession session = request.getSession();
 			@SuppressWarnings("unchecked")
-			ArrayList<API> originalSupplyList = (ArrayList<API>) session.getAttribute("originalSupplyList");
+			ArrayList<Supply> originalSupplyList = (ArrayList<Supply>) session.getAttribute("originalSupplyList");
 			
 			if (originalSupplyList != null && !originalSupplyList.isEmpty()) {
 				// 复制原始列表
