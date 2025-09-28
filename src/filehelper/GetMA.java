@@ -59,8 +59,8 @@ public class GetMA {
 				caseList.add(rs.getString(1));
 			}
 			
-			// 获取所有耗材名称
-			rs = statement.executeQuery("select distinct C_NAME from tb_supply order by C_NAME");
+			// 获取所有耗材名称 - 修改为与SupplyMap.java一致的排序方式
+			rs = statement.executeQuery("select C_NAME from (select C_NAME, MIN(N_ID) as MIN_ID from tb_supply group by C_NAME) as t order by MIN_ID");
 			while(rs.next()){
 				supplyList.add(rs.getString(1));
 			}

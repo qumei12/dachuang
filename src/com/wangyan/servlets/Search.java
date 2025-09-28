@@ -29,9 +29,12 @@ import filehelper.CaseSupplyMatrixService;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 /**
  * Servlet implementation class Search
@@ -344,6 +347,59 @@ public class Search extends HttpServlet {
 		System.out.println("预加载搜索结果功能已实现，可根据需要调用");
 	}
 	
+	/**
+	 * 尝试从预计算结果中加载推荐的耗材
+	 * @param diseaseName 病种名称
+	 * @return 推荐的耗材索引列表，如果未找到预计算结果则返回null
+	 */
+	private List<Integer> loadPrecomputedSupplies(String diseaseName) {
+		try {
+			// 文件名不能包含特殊字符，需要进行处理
+			String fileName = diseaseName.replaceAll("[<>:\"/\\\\|?*]", "_");
+			String filePath = "models/precomputed/" + fileName + ".dat";
+			
+			File file = new File(filePath);
+			if (!file.exists()) {
+				return null;
+			}
+			
+			try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+				@SuppressWarnings("unchecked")
+				List<Integer> recommendedSupplies = (List<Integer>) ois.readObject();
+				return recommendedSupplies;
+			}
+		} catch (FileNotFoundException e) {
+			// 预计算文件不存在，返回null
+			return null;
+		} catch (Exception e) {
+			System.err.println("加载病种 " + diseaseName + " 的预计算结果时出错: " + e.getMessage());
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	/**
+	 * 根据预计算的耗材索引列表获取实际的Supply对象列表
+	 * @param supplyIndices 耗材索引列表
+	 * @return Supply对象列表
+	 */
+	private List<Supply> getSuppliesFromIndices(List<Integer> supplyIndices) {
+		List<Supply> supplies = new ArrayList<>();
+		DBSearch dbs = new DBSearch();
+		
+		for (Integer supplyIndex : supplyIndices) {
+			if (supplyIndex_ID.containsKey(supplyIndex)) {
+				int supplyId = supplyIndex_ID.get(supplyIndex);
+				Supply supply = dbs.getSupplyById(supplyId);
+				if (supply != null) {
+					supplies.add(supply);
+				}
+			}
+		}
+		
+		return supplies;
+	}
+	
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String diseaseName = request.getParameter("search");
 		String replaceSupplyIdStr = request.getParameter("replaceSupplyId");
@@ -393,17 +449,28 @@ public class Search extends HttpServlet {
 				return;
 			}
 			
-			// 使用LDA模型为病种推荐耗材，而不是直接从数据库获取关联耗材
-			// 智能计算最优推荐主题数量
-			int dynamicTopK = determineTopKForSearch(diseaseName);
+			// 尝试从预计算结果中加载推荐耗材
+			List<Supply> recommandSupplyList = null;
+			List<Integer> precomputedSupplyIndices = loadPrecomputedSupplies(diseaseName);
 			
-			// 使用IndexUtil的推荐方法进行推荐（使用LDA模型）
-			List<Supply> recommandSupplyList = iu.recommendOneSupplyPerInterestByLDAModel(
-				diseaseIndex, 
-				dynamicTopK,
-				ldaModel,
-				supplyIndex_ID
-			);
+			if (precomputedSupplyIndices != null) {
+				// 使用预计算的结果
+				recommandSupplyList = getSuppliesFromIndices(precomputedSupplyIndices);
+				System.out.println("使用预计算的推荐结果，共 " + recommandSupplyList.size() + " 个耗材");
+			} else {
+				// 使用LDA模型为病种推荐耗材，而不是直接从数据库获取关联耗材
+				// 智能计算最优推荐主题数量
+				int dynamicTopK = determineTopKForSearch(diseaseName);
+				
+				// 使用IndexUtil的推荐方法进行推荐（使用LDA模型）
+				recommandSupplyList = iu.recommendOneSupplyPerInterestByLDAModel(
+					diseaseIndex, 
+					dynamicTopK,
+					ldaModel,
+					supplyIndex_ID
+				);
+				System.out.println("实时计算推荐结果，共 " + recommandSupplyList.size() + " 个耗材");
+			}
 			
 			// 如果没有推荐到耗材
 			if (recommandSupplyList == null || recommandSupplyList.isEmpty()) {
@@ -469,10 +536,10 @@ public class Search extends HttpServlet {
 				else return 0;
 			});
 			
-			System.out.println("病种 \"" + diseaseName + "\" 的前 " + dynamicTopK + " 个兴趣主题:");
+			System.out.println("病种 \"" + diseaseName + "\" 的前 " + Math.min(10, interestIndices.size()) + " 个兴趣主题:");
 			// 正确地为每个推荐的耗材确定其所属的主题
 			int[] interestIds = new int[limitedSupplyList.size()];
-			for (int i = 0; i < Math.min(dynamicTopK, limitedSupplyList.size()); i++) {
+			for (int i = 0; i < Math.min(10, limitedSupplyList.size()); i++) {
 				int interestId = interestIndices.get(i);
 				Supply supply = limitedSupplyList.get(i);
 				System.out.println("  兴趣主题 " + interestId + " - 概率: " + String.format("%.6f", interestProbs[interestId]));

@@ -13,15 +13,15 @@ import dbhelper.DBHelper;
 
 public class CaseSupplyMatrixService {
 	
-	// 添加缓存以提高性能
-	private static Integer[][] caseSupplyMatrixCache = null;
+	// 移除缓存以确保每次获取最新数据
+	// private static Integer[][] caseSupplyMatrixCache = null;
 	private static Map<Integer, List<Integer>> diseaseCaseIndexesCache = new HashMap<>();
 	
 	public static Integer[][] getCaseSupplyMatrix(){
-		// 检查缓存
-		if (caseSupplyMatrixCache != null) {
-			return caseSupplyMatrixCache;
-		}
+		// 移除缓存检查以确保每次获取最新数据
+		// if (caseSupplyMatrixCache != null) {
+		// 	return caseSupplyMatrixCache;
+		// }
 		
 		double trainset = 1;
 		
@@ -40,8 +40,8 @@ public class CaseSupplyMatrixService {
 			}
 		}
 		
-		// 缓存结果
-		caseSupplyMatrixCache = caseSupplyMatrix;
+		// 移除缓存以确保每次获取最新数据
+		// caseSupplyMatrixCache = caseSupplyMatrix;
 		
 		return caseSupplyMatrix;
 		
