@@ -38,7 +38,7 @@ public class LDAModel {
 		alpha = 0.1;                   // Dirichlet参数
 		beta = 1;                   // Dirichlet参数
 
-		iterations = 200;             // 迭代次数
+		iterations = 200;             // 恢复为原来的迭代次数
 		saveStep = 10;                 // 保存步长
 		beginSaveIters = 150;           // 开始保存迭代次数
 	}

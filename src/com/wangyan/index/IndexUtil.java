@@ -296,7 +296,7 @@ public class IndexUtil {
 			int bestSupplyIndex = -1;
 
 			// 限制搜索范围以提高性能
-			int searchLimit = Math.min(100, ldaModel.getSupplyAmount()); // 只搜索前100个耗材
+			int searchLimit = ldaModel.getSupplyAmount(); // 使用所有耗材进行搜索
 			for (int j = 0; j < searchLimit; j++) {
 				// 确保不重复推荐已选的Supply
 				if (!selectedSupplys.contains(j) && ldaModel.getPhi()[interestId][j] > maxProb) {

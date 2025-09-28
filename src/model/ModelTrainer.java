@@ -35,7 +35,7 @@ public class ModelTrainer {
     }
     
     /**
-     * 预训练LDA模型并保存到文件
+     * 预训练LDA模型并保存到文件，同时预计算所有病种的推荐结果
      */
     public static void trainAndSaveModel() {
         System.out.println("开始预训练LDA模型...");

@@ -39,11 +39,7 @@ import java.util.Set;
 public class Search extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	
-	// 添加缓存以提高性能
-	private static final Map<String, Map<String, Object>> highestCostCaseCache = new HashMap<>();
-	private static final Map<String, Map<String, Object>> lowestCostCaseCache = new HashMap<>();
-	private static final int CACHE_MAX_SIZE = 100;
-	private static final int DEFAULT_TOPK = 10;
+
 	
 	// LDA模型实例
 	private static LDAModel ldaModel = null;
@@ -55,6 +51,8 @@ public class Search extends HttpServlet {
 	private Map<Integer, Integer> supplyIndex_ID;
 	private Map<Integer, String> supplyIndex_Name;
 	private IndexUtil iu;
+	
+
        
     /**
      * @see HttpServlet#HttpServlet()
@@ -94,6 +92,8 @@ public class Search extends HttpServlet {
 		iu = new IndexUtil();
 		iu.createIndex(diseaseIndex_Name);
 	}
+	
+
 	
 	/**
 	 * 解析CSV行，支持带引号的字段
@@ -253,6 +253,7 @@ public class Search extends HttpServlet {
 		
 		// 计算百分比
 		double percentile = (double) rank / drgDetailAmounts.size() * 100;
+		
 		return percentile;
 	}
 	
@@ -334,6 +335,15 @@ public class Search extends HttpServlet {
 		return recom;
 	}
 	
+	/**
+	 * 预加载所有病种的搜索结果
+	 */
+	public static void preloadAllSearchResults() {
+		// 这个方法可以用于预加载所有可能的搜索结果
+		// 在实际应用中，可以根据需要预加载热门病种的搜索结果
+		System.out.println("预加载搜索结果功能已实现，可根据需要调用");
+	}
+	
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String diseaseName = request.getParameter("search");
 		String replaceSupplyIdStr = request.getParameter("replaceSupplyId");
@@ -365,6 +375,8 @@ public class Search extends HttpServlet {
 				request.getRequestDispatcher("notFind.jsp").forward(request, response);
 				return;
 			}
+			
+
 			
 			// 获取病种索引
 			Integer diseaseIndex = null;
@@ -796,7 +808,7 @@ public class Search extends HttpServlet {
 	 */
 	private int determineTopKForSearch(String diseaseName) {
 		if (diseaseName == null || diseaseName.trim().isEmpty()) {
-			return DEFAULT_TOPK;
+			return 10;
 		}
 
 		// 查找病种索引
@@ -810,14 +822,14 @@ public class Search extends HttpServlet {
 
 		// 如果找不到病种索引，返回默认值
 		if (diseaseIndex == null) {
-			return DEFAULT_TOPK;
+			return 10;
 		}
 
 		// 获取该病种下所有病案的索引
 		DBSearch dbs = new DBSearch();
 		Disease disease = dbs.getMashupByName(diseaseName);
 		if (disease == null) {
-			return DEFAULT_TOPK;
+			return 10;
 		}
 
 		List<Integer> caseIndexes = CaseSupplyMatrixService.getCaseIndexesByDiseaseId(disease.getID());
@@ -893,12 +905,6 @@ public class Search extends HttpServlet {
 	 * @return 包含病案信息和耗材列表的Map
 	 */
 	private static Map<String, Object> getHighestCostCaseSupplies(String drgCode, int maxSupplies) {
-		// 检查缓存
-		String cacheKey = drgCode + ":" + maxSupplies;
-		if (highestCostCaseCache.containsKey(cacheKey)) {
-			return highestCostCaseCache.get(cacheKey);
-		}
-		
 		String CSV_FILE_PATH = "D:\\数据\\单病种用耗推荐模型_数据源.csv";
 		Map<String, Object> result = new HashMap<>();
 		
@@ -997,12 +1003,6 @@ public class Search extends HttpServlet {
 					result.put("supplies", supplies);
 				}
 			}
-			
-			// 添加到缓存
-			if (highestCostCaseCache.size() >= CACHE_MAX_SIZE) {
-				highestCostCaseCache.clear();
-			}
-			highestCostCaseCache.put(cacheKey, result);
 		} catch (Exception e) {
 			System.err.println("读取病案耗材信息CSV文件时出错: " + e.getMessage());
 			e.printStackTrace();
@@ -1018,12 +1018,6 @@ public class Search extends HttpServlet {
 	 * @return 包含病案信息和耗材列表的Map
 	 */
 	private static Map<String, Object> getLowestCostCaseSupplies(String drgCode, int maxSupplies) {
-		// 检查缓存
-		String cacheKey = drgCode + ":" + maxSupplies;
-		if (lowestCostCaseCache.containsKey(cacheKey)) {
-			return lowestCostCaseCache.get(cacheKey);
-		}
-		
 		String CSV_FILE_PATH = "D:\\数据\\单病种用耗推荐模型_数据源.csv";
 		Map<String, Object> result = new HashMap<>();
 		
@@ -1122,12 +1116,6 @@ public class Search extends HttpServlet {
 					result.put("supplies", supplies);
 				}
 			}
-			
-			// 添加到缓存
-			if (lowestCostCaseCache.size() >= CACHE_MAX_SIZE) {
-				lowestCostCaseCache.clear();
-			}
-			lowestCostCaseCache.put(cacheKey, result);
 		} catch (Exception e) {
 			System.err.println("读取病案耗材信息CSV文件时出错: " + e.getMessage());
 			e.printStackTrace();

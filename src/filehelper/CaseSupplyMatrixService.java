@@ -5,13 +5,23 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import dbhelper.DBHelper;
 
 public class CaseSupplyMatrixService {
 	
+	// 添加缓存以提高性能
+	private static Integer[][] caseSupplyMatrixCache = null;
+	private static Map<Integer, List<Integer>> diseaseCaseIndexesCache = new HashMap<>();
+	
 	public static Integer[][] getCaseSupplyMatrix(){
+		// 检查缓存
+		if (caseSupplyMatrixCache != null) {
+			return caseSupplyMatrixCache;
+		}
 		
 		double trainset = 1;
 		
@@ -30,6 +40,9 @@ public class CaseSupplyMatrixService {
 			}
 		}
 		
+		// 缓存结果
+		caseSupplyMatrixCache = caseSupplyMatrix;
+		
 		return caseSupplyMatrix;
 		
 	}
@@ -40,6 +53,11 @@ public class CaseSupplyMatrixService {
 	 * @return 病案索引列表
 	 */
 	public static List<Integer> getCaseIndexesByDiseaseId(int diseaseId) {
+		// 检查缓存
+		if (diseaseCaseIndexesCache.containsKey(diseaseId)) {
+			return diseaseCaseIndexesCache.get(diseaseId);
+		}
+		
 		List<Integer> caseIndexes = new ArrayList<>();
 		
 		Connection connection = DBHelper.getConnection();
@@ -71,6 +89,9 @@ public class CaseSupplyMatrixService {
 					caseIndexes.add(index);
 				}
 			}
+			
+			// 缓存结果
+			diseaseCaseIndexesCache.put(diseaseId, caseIndexes);
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
