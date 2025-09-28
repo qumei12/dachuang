@@ -98,9 +98,14 @@
 		Integer diseaseIndex = (Integer) request.getAttribute("diseaseIndex");
 		Map<Integer, Integer> supplyToInterestMap = (Map<Integer, Integer>) request.getAttribute("supplyToInterestMap");
 		Double drgPaymentStandard = (Double) request.getAttribute("drgPaymentStandard");
+		Double totalAmount = (Double) request.getAttribute("totalAmount");
+		Double amountRankPercentile = (Double) request.getAttribute("amountRankPercentile");
 		
 		// 计算总价
-		double totalAmount = 0.0;
+		if (totalAmount == null) {
+			totalAmount = 0.0;
+		}
+		
 		Map<Integer, Integer> supplyToAverageQuantityMap = (Map<Integer, Integer>) request.getAttribute("supplyToAverageQuantityMap");
 	%>
 
@@ -197,11 +202,11 @@
 			<td colspan="6" style="text-align: right; font-weight: bold;">总价:</td>
 			<td colspan="2" style="font-weight: bold;">¥<%= String.format("%.2f", totalAmount) %></td>
 		</tr>
-		<% if (drgPaymentStandard != null && drgPaymentStandard > 0) { %>
+		<% if (amountRankPercentile != null && amountRankPercentile >= 0) { %>
 		<tr>
-			<td colspan="6" style="text-align: right; font-weight: bold;">占DRG支付标准比例:</td>
+			<td colspan="6" style="text-align: right; font-weight: bold;">总价排名百分比:</td>
 			<td colspan="2" style="font-weight: bold;">
-				<%= String.format("%.2f", (totalAmount / drgPaymentStandard) * 100) %>%
+				<%= String.format("%.2f", amountRankPercentile) %>%
 			</td>
 		</tr>
 		<% } %>

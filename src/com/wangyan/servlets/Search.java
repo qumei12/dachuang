@@ -151,20 +151,14 @@ public class Search extends HttpServlet {
 	private static double getPaymentStandardByDrgCode(String drgCode) {
 		String CSV_FILE_PATH = "D:\\数据\\单病种用耗推荐模型_数据源.csv";
 		
-		System.out.println("正在查找DRG编码: " + drgCode);
-		
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CSV_FILE_PATH), StandardCharsets.UTF_8))) {
 			String line;
 			boolean isFirstLine = true;
-			int lineCount = 0;
 			
 			while ((line = br.readLine()) != null) {
-				lineCount++;
-				
 				// 跳过标题行
 				if (isFirstLine) {
 					isFirstLine = false;
-					System.out.println("CSV标题行: " + line);
 					continue;
 				}
 				
@@ -174,34 +168,93 @@ public class Search extends HttpServlet {
 					String currentDrgCode = values[26].trim(); // DRG编码在第27列（索引26）
 					String paymentStandardStr = values[31].trim(); // DRG支付标准在第32列（索引31）
 					
-					// 调试信息
-					if (lineCount <= 5) {
-						System.out.println("第" + lineCount + "行数据 - DRG编码: '" + currentDrgCode + "', 支付标准: '" + paymentStandardStr + "'");
-					}
-					
 					// 只处理非空的DRG编码
 					if (!currentDrgCode.isEmpty() && currentDrgCode.equals(drgCode)) {
-						System.out.println("找到匹配的DRG编码: " + currentDrgCode + ", 支付标准: " + paymentStandardStr);
 						try {
 							double paymentStandard = Double.parseDouble(paymentStandardStr);
-							System.out.println("成功解析DRG支付标准: " + paymentStandard);
 							return paymentStandard;
 						} catch (NumberFormatException e) {
 							// 忽略无法解析的支付标准值
-							System.err.println("无法解析DRG支付标准值: " + paymentStandardStr);
 						}
 					}
-				} else {
-					System.err.println("第" + lineCount + "行数据列数不足: " + values.length);
 				}
 			}
-			System.out.println("未找到DRG编码 '" + drgCode + "' 对应的支付标准");
 		} catch (Exception e) {
 			System.err.println("读取DRG支付标准CSV文件时出错: " + e.getMessage());
 			e.printStackTrace();
 		}
 		
 		return 0.0;
+	}
+	
+	/**
+	 * 计算指定DRG编码下，给定金额在DRG明细总金额中的排名百分比
+	 * @param drgCode DRG编码
+	 * @param targetAmount 目标金额
+	 * @return 排名百分比（0-100），0%表示最便宜，100%表示最贵
+	 */
+	private static double calculateAmountRankPercentile(String drgCode, double targetAmount) {
+		String CSV_FILE_PATH = "D:\\数据\\单病种用耗推荐模型_数据源.csv";
+		Map<String, Double> caseIdToAmount = new HashMap<>(); // 用于去重，key为病案ID，value为金额
+		
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CSV_FILE_PATH), StandardCharsets.UTF_8))) {
+			String line;
+			boolean isFirstLine = true;
+			
+			while ((line = br.readLine()) != null) {
+				// 跳过标题行
+				if (isFirstLine) {
+					isFirstLine = false;
+					continue;
+				}
+				
+				// 使用项目中已有的CSV解析方法解析行
+				String[] values = parseCsvLine(line);
+				if (values.length >= 33) { // 确保有足够的列
+					String currentDrgCode = values[26].trim(); // DRG编码在第27列（索引26）
+					String caseId = values[0].trim(); // 病案ID在第1列（索引0）
+					String drgDetailAmountStr = values[32].trim(); // DRG明细总金额在第33列（索引32）
+					
+					// 只处理匹配的DRG编码
+					if (!currentDrgCode.isEmpty() && currentDrgCode.equals(drgCode)) {
+						try {
+							double drgDetailAmount = Double.parseDouble(drgDetailAmountStr);
+							// 使用病案ID作为key进行去重，保留第一次出现的值
+							caseIdToAmount.putIfAbsent(caseId, drgDetailAmount);
+						} catch (NumberFormatException e) {
+							// 忽略无法解析的金额值
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			System.err.println("读取DRG明细总金额CSV文件时出错: " + e.getMessage());
+			e.printStackTrace();
+			return -1; // 表示计算失败
+		}
+		
+		// 如果没有找到相关数据
+		if (caseIdToAmount.isEmpty()) {
+			return -1;
+		}
+		
+		// 将Map中的值转换为List并排序
+		List<Double> drgDetailAmounts = new ArrayList<>(caseIdToAmount.values());
+		Collections.sort(drgDetailAmounts);
+		
+		// 计算排名
+		int rank = 0;
+		for (int i = 0; i < drgDetailAmounts.size(); i++) {
+			if (drgDetailAmounts.get(i) <= targetAmount) {
+				rank = i + 1;
+			} else {
+				break;
+			}
+		}
+		
+		// 计算百分比
+		double percentile = (double) rank / drgDetailAmounts.size() * 100;
+		return percentile;
 	}
 	
 	/**
@@ -451,11 +504,40 @@ public class Search extends HttpServlet {
 			// 获取DRG支付标准
 			double drgPaymentStandard = getPaymentStandardByDrgCode(disease.getNAME());
 			
+			// 计算总价
+			double totalAmount = 0.0;
+			for (Supply supply : limitedSupplyList) {
+				double unitPrice = 0.0;
+				int averageQuantity = 0;
+				
+				if (supply.getPRICE() != null && !supply.getPRICE().isEmpty() && !supply.getPRICE().equals("0")) {
+					try {
+						unitPrice = Double.parseDouble(supply.getPRICE());
+					} catch (NumberFormatException e) {
+						// 忽略无法解析的价格
+					}
+				}
+				
+				if (supplyToAverageQuantityMap != null) {
+					Integer quantity = supplyToAverageQuantityMap.get(supply.getID());
+					if (quantity != null) {
+						averageQuantity = quantity;
+					}
+				}
+				
+				totalAmount += unitPrice * averageQuantity;
+			}
+			
+			// 计算总价在DRG明细总金额中的排名百分比
+			double amountRankPercentile = calculateAmountRankPercentile(disease.getNAME(), totalAmount);
+			
 			// 传递数据到JSP页面
 			request.setAttribute("disease", disease);
 			request.setAttribute("supplyList", limitedSupplyList);
 			request.setAttribute("supplyToAverageQuantityMap", supplyToAverageQuantityMap);
 			request.setAttribute("drgPaymentStandard", drgPaymentStandard);
+			request.setAttribute("totalAmount", totalAmount);
+			request.setAttribute("amountRankPercentile", amountRankPercentile);
 			request.setAttribute("diseaseIndex", diseaseIndex);
 			request.setAttribute("supplyToInterestMap", supplyToInterestMap);
 			request.setAttribute("diseaseIndex_ID", diseaseIndex_ID);
@@ -487,6 +569,10 @@ public class Search extends HttpServlet {
 			
 			// 保存病种的完整兴趣主题排序列表
 			session.setAttribute("diseaseInterestOrder", new ArrayList<>(interestIndices));
+			
+			// 保存DRG支付标准和排名百分比
+			session.setAttribute("drgPaymentStandard", drgPaymentStandard);
+			session.setAttribute("amountRankPercentile", amountRankPercentile);
 			
 			// 记录调试信息
 			System.out.println("初始搜索时保存原始供应列表到会话");
@@ -623,6 +709,8 @@ public class Search extends HttpServlet {
 			request.setAttribute("diseaseIndex_Name", diseaseIndex_Name);
 			request.setAttribute("supplyIndex_ID", supplyIndex_ID);
 			request.setAttribute("supplyIndex_Name", supplyIndex_Name);
+			request.setAttribute("drgPaymentStandard", session.getAttribute("drgPaymentStandard"));
+			request.setAttribute("amountRankPercentile", session.getAttribute("amountRankPercentile"));
 			
 			request.getRequestDispatcher("searchResult.jsp").forward(request, response);
 			
