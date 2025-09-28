@@ -100,6 +100,7 @@
 		Double drgPaymentStandard = (Double) request.getAttribute("drgPaymentStandard");
 		Double totalAmount = (Double) request.getAttribute("totalAmount");
 		Double amountRankPercentile = (Double) request.getAttribute("amountRankPercentile");
+		Map<String, Object> highestCostCaseInfo = (Map<String, Object>) request.getAttribute("highestCostCaseInfo");
 		
 		// 计算总价
 		if (totalAmount == null) {
@@ -213,6 +214,102 @@
 	</table>
 	<% } else { %>
 	<p>该病种没有关联的耗材。</p>
+	<% } %>
+	
+	<% if (highestCostCaseInfo != null && !highestCostCaseInfo.isEmpty()) { %>
+	<h3>DRG总金额最大病案的耗材信息</h3>
+	<p><strong>病案ID:</strong> <%= highestCostCaseInfo.get("caseId") %></p>
+	<p><strong>DRG总金额:</strong> ¥<%= String.format("%.2f", (Double) highestCostCaseInfo.get("totalAmount")) %></p>
+	
+	<% 
+		@SuppressWarnings("unchecked")
+		List<Map<String, String>> supplies = (List<Map<String, String>>) highestCostCaseInfo.get("supplies");
+		if (supplies != null && !supplies.isEmpty()) { 
+	%>
+	<h3>主要耗材</h3>
+	<table>
+		<tr>
+			<th>产品ID</th>
+			<th>产品名称</th>
+			<th>规格</th>
+			<th>单价</th>
+		</tr>
+		<% for (Map<String, String> supply : supplies) { %>
+		<tr>
+			<td><%= supply.get("productId") %></td>
+			<td><%= supply.get("productName") != null && !supply.get("productName").isEmpty() ? supply.get("productName") : "无产品名称" %></td>
+			<td><%= supply.get("specification") != null && !supply.get("specification").isEmpty() ? supply.get("specification") : "无规格" %></td>
+			<td>
+				<% 
+					String unitPriceStr = supply.get("unitPrice");
+					if (unitPriceStr != null && !unitPriceStr.isEmpty()) {
+						try {
+							double unitPrice = Double.parseDouble(unitPriceStr);
+							out.print("¥" + String.format("%.2f", unitPrice));
+						} catch (NumberFormatException e) {
+							out.print("暂无价格");
+						}
+					} else {
+						out.print("暂无价格");
+					}
+				%>
+			</td>
+		</tr>
+		<% } %>
+	</table>
+	<% } else { %>
+	<p>该病案没有耗材信息。</p>
+	<% } %>
+	<% } %>
+	
+	<% 
+		// 显示DRG总金额最小病案的耗材信息
+		Map<String, Object> lowestCostCaseInfo = (Map<String, Object>) request.getAttribute("lowestCostCaseInfo");
+		if (lowestCostCaseInfo != null && !lowestCostCaseInfo.isEmpty()) { 
+	%>
+	<h3>DRG总金额最小病案的耗材信息</h3>
+	<p><strong>病案ID:</strong> <%= lowestCostCaseInfo.get("caseId") %></p>
+	<p><strong>DRG总金额:</strong> ¥<%= String.format("%.2f", (Double) lowestCostCaseInfo.get("totalAmount")) %></p>
+	
+	<% 
+		@SuppressWarnings("unchecked")
+		List<Map<String, String>> supplies = (List<Map<String, String>>) lowestCostCaseInfo.get("supplies");
+		if (supplies != null && !supplies.isEmpty()) { 
+	%>
+	<h3>主要耗材</h3>
+	<table>
+		<tr>
+			<th>产品ID</th>
+			<th>产品名称</th>
+			<th>规格</th>
+			<th>单价</th>
+		</tr>
+		<% for (Map<String, String> supply : supplies) { %>
+		<tr>
+			<td><%= supply.get("productId") %></td>
+			<td><%= supply.get("productName") != null && !supply.get("productName").isEmpty() ? supply.get("productName") : "无产品名称" %></td>
+			<td><%= supply.get("specification") != null && !supply.get("specification").isEmpty() ? supply.get("specification") : "无规格" %></td>
+			<td>
+				<% 
+					String unitPriceStr = supply.get("unitPrice");
+					if (unitPriceStr != null && !unitPriceStr.isEmpty()) {
+						try {
+							double unitPrice = Double.parseDouble(unitPriceStr);
+							out.print("¥" + String.format("%.2f", unitPrice));
+						} catch (NumberFormatException e) {
+							out.print("暂无价格");
+						}
+					} else {
+						out.print("暂无价格");
+					}
+				%>
+			</td>
+		</tr>
+		<% } %>
+	</table>
+	<% } else { %>
+	<p>该病案没有耗材信息。</p>
+	<% } %>
 	<% } %>
 
 	<div class="back-link">
