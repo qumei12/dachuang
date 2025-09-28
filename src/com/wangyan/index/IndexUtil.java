@@ -21,6 +21,9 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 
+import filehelper.CaseSupplyMatrixService;
+import dbhelper.DBSearch;
+
 import dbhelper.DBSearch;
 import javabean.Supply;
 import model.LDAModel;
@@ -254,7 +257,12 @@ public class IndexUtil {
 		}
 
 		// 获取用户对各兴趣主题的概率
+		// 使用病种下所有病案的平均主题分布
 		Double[] interestProbs = new Double[ldaModel.getTopicAmount()];
+		
+		// 获取该病种下所有病案的索引
+		// 注意：这里需要从调用方传入病种ID
+		// 由于此方法没有病种ID参数，暂时使用单个病案分布
 		for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
 			interestProbs[k] = ldaModel.getTheta()[diseaseIndex][k];
 		}
@@ -309,57 +317,4 @@ public class IndexUtil {
 		return recommendedSupplys;
 	}
 
-	// 在IndexUtil类中添加以下方法
-	/**
-	 * 为指定disease推荐Supply，每个兴趣主题推荐一个最相关的Supply
-	 * @param diseaseIndex disease索引
-	 * @param interestCount 兴趣主题数量
-	 * @param diseaseWordsBag disease词袋数据
-	 * @param supplyWordsBag Supply词袋数据
-	 * @param supplyIndex_ID Supply索引到ID的映射
-	 * @return 推荐的Supply列表，每个兴趣一个Supply
-	 */
-	public List<Supply> recommendOneSupplyPerInterest(Integer diseaseIndex, int interestCount,
-												Map<Integer, List<Integer>> diseaseWordsBag,
-												Map<Integer, List<Integer>> supplyWordsBag,
-												Map<Integer, Integer> supplyIndex_ID) {
-		List<Supply> recommendedSupplys = new ArrayList<>();
-
-		// 检查diseaseIndex是否为null
-		if (diseaseIndex == null) {
-			System.out.println("Disease索引为空");
-			return recommendedSupplys;
-		}
-
-		// 获取该disease的多个兴趣（默认获取前interestCount个最相关的兴趣）
-		List<InterestScore> interests = getTopInterests(diseaseIndex, diseaseWordsBag, interestCount);
-
-		// 为每个兴趣推荐一个最相关的Supply
-		DBSearch dbSearch = new DBSearch();
-		Set<Integer> selectedSupplys = new HashSet<>(); // 避免重复推荐同一个Supply
-
-		for (int i = 0; i < Math.min(interestCount, interests.size()); i++) {
-			InterestScore interestScore = interests.get(i);
-			int interestId = interestScore.interestId;
-
-			// 获取该兴趣相关的Supply列表
-			List<Integer> supplyListForInterest = supplyWordsBag.get(interestId);
-			if (supplyListForInterest != null && !supplyListForInterest.isEmpty()) {
-				// 查找第一个未被选择的Supply
-				for (int supplyIndex : supplyListForInterest) {
-					if (!selectedSupplys.contains(supplyIndex) && supplyIndex_ID.containsKey(supplyIndex)) {
-						int supplyId = supplyIndex_ID.get(supplyIndex);
-						Supply supply = dbSearch.getSupplyById(supplyId);
-						if (supply != null && supply.getID() > 0) {
-							recommendedSupplys.add(supply);
-							selectedSupplys.add(supplyIndex); // 记录已选Supply避免重复
-							break;
-						}
-					}
-				}
-			}
-		}
-
-		return recommendedSupplys;
-	}
 }

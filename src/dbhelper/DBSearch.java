@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.sql.PreparedStatement;
+import java.util.List;
 
 //import com.sun.org.apache.regexp.internal.recompile;
 
@@ -185,10 +186,12 @@ public class DBSearch {
 			ResultSet rs = statement.executeQuery(sql);
 
 			while (rs.next()) {
-				supply.setID(rs.getInt(1));
-				supply.setNAME(rs.getString(4));
-				supply.setDESCRIPTION(rs.getString(5));
-				supply.setURL(rs.getString(6));
+				supply.setID(rs.getInt(1));                           // N_ID - 耗材ID
+				supply.setNAME(rs.getString(3));                      // C_NAME - 耗材名称
+				supply.setDESCRIPTION(rs.getString(6));               // C_PRICE - 价格
+				supply.setURL(rs.getString(5));                       // C_SPECIFICATION - 规格
+				supply.setPRODUCT_NAME(rs.getString(4));              // C_PRODUCT_NAME - 产品名称
+				supply.setPRICE(rs.getString(6));                     // C_PRICE - 价格
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -197,7 +200,7 @@ public class DBSearch {
 			try {
 				connection.close();
 			} catch (SQLException e) {
-				// TODO Auto-generated catch block
+				// TODO Auto-generated block
 				e.printStackTrace();
 			}
 		}
@@ -395,5 +398,134 @@ public class DBSearch {
 		return supplyId;
 	}
 
+	/**
+	 * 计算指定耗材在指定病种所有病案中的平均使用数量
+	 * @param diseaseId 病种ID
+	 * @param supplyName 耗材名称
+	 * @return 平均使用数量
+	 */
+	public double getAverageSupplyUsage(int diseaseId, String supplyName) {
+		Connection connection = DBHelper.getConnection();
+		PreparedStatement statement = null;
+		double averageUsage = 0.0;
+
+		try {
+			// 先获取该病种下的所有病案ID
+			String caseIdsSql = "SELECT N_ID FROM tb_case WHERE N_MASHUP_ID = ?";
+			PreparedStatement caseIdsStatement = connection.prepareStatement(caseIdsSql);
+			caseIdsStatement.setInt(1, diseaseId);
+			ResultSet caseIdsRs = caseIdsStatement.executeQuery();
+			
+			List<Integer> caseIds = new ArrayList<>();
+			while (caseIdsRs.next()) {
+				caseIds.add(caseIdsRs.getInt(1));
+			}
+			
+			// 添加调试信息
+			System.out.println("病种ID " + diseaseId + " 下的病案数量: " + caseIds.size());
+			System.out.println("查询耗材: " + supplyName);
+			
+			if (!caseIds.isEmpty()) {
+				// 构建病案ID列表
+				StringBuilder caseIdList = new StringBuilder();
+				boolean first = true;
+				for (int caseId : caseIds) {
+					if (!first) {
+						caseIdList.append(",");
+					}
+					caseIdList.append(caseId);
+					first = false;
+				}
+				
+				// 查询这些病案中指定耗材的使用情况
+				// 使用正确的字段名C_QUANTITY来统计耗材数量
+				String usageSql = "SELECT SUM(C_QUANTITY) as total_usage FROM tb_supply WHERE N_CASE_ID IN (" + caseIdList.toString() + ") AND C_NAME = ?";
+				statement = connection.prepareStatement(usageSql);
+				statement.setString(1, supplyName);
+				
+				// 添加调试信息
+				System.out.println("执行SQL: " + usageSql);
+				System.out.println("参数: " + supplyName);
+				
+				ResultSet rs = statement.executeQuery();
+				
+				int totalUsage = 0;
+				if (rs.next()) {
+					totalUsage = rs.getInt("total_usage");
+					// 处理NULL值情况
+					if (rs.wasNull()) {
+						totalUsage = 0;
+						System.out.println("查询结果为NULL");
+					} else {
+						System.out.println("总使用量: " + totalUsage);
+					}
+				} else {
+					System.out.println("没有查询到结果");
+				}
+				
+				// 计算平均使用数量
+				int caseCount = caseIds.size();
+				if (caseCount > 0) {
+					averageUsage = (double) totalUsage / caseCount;
+					System.out.println("平均使用量: " + averageUsage);
+				}
+			}
+			
+			caseIdsStatement.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (statement != null) statement.close();
+				if (connection != null) connection.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		System.out.println("返回平均使用量: " + averageUsage);
+		return averageUsage;
+	}
+
+	/**
+	 * 计算特定病种中使用指定耗材的病案的平均数量
+	 * @param diseaseId 病种ID
+	 * @param supplyId 耗材ID
+	 * @return 平均使用数量（取整）
+	 */
+	public int getAverageSupplyQuantityForDisease(int diseaseId, int supplyId) {
+	    Connection connection = DBHelper.getConnection();
+	    Statement statement = null;
+	    int averageQuantity = 0;
+	    
+	    try {
+	        statement = connection.createStatement();
+	        
+	        // 查询指定病种中使用指定耗材的所有记录，并计算平均数量
+	        String sql = "SELECT AVG(C_QUANTITY) as avg_quantity FROM tb_supply WHERE N_CASE_ID IN " +
+	                    "(SELECT N_ID FROM tb_case WHERE N_MASHUP_ID = " + diseaseId + ") " +
+	                    "AND C_NAME = (SELECT C_NAME FROM tb_supply WHERE N_ID = " + supplyId + " LIMIT 1)";
+	        
+	        ResultSet rs = statement.executeQuery(sql);
+	        
+	        if (rs.next()) {
+	            double avg = rs.getDouble("avg_quantity");
+	            // 取整
+	            averageQuantity = (int) Math.round(avg);
+	        }
+	        
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    } finally {
+	        try {
+	            if (statement != null) statement.close();
+	            if (connection != null) connection.close();
+	        } catch (SQLException e) {
+	            e.printStackTrace();
+	        }
+	    }
+	    
+	    return averageQuantity;
+	}
 
 }

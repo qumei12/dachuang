@@ -112,6 +112,10 @@ public class nextSearch extends HttpServlet {
 			// 为当前耗材推荐相关的其他耗材
 			ArrayList<Supply> recommandSupplyList = new ArrayList<>();
 			
+			// 计算每个推荐耗材的平均使用数量
+			// 创建耗材ID到平均使用数量的映射
+			Map<Integer, Integer> supplyToAverageQuantityMap = new HashMap<>();
+			
 			// 根据是否提供了兴趣主题ID来决定推荐策略
 			// 优先使用明确指定的兴趣主题ID
 			if(interestId >= 0) {
@@ -146,9 +150,24 @@ public class nextSearch extends HttpServlet {
 				recommandSupplyList = recommandDefault(supplyId);
 			}
 			
+			// 从会话中获取疾病信息以计算平均使用数量
+			HttpSession session = request.getSession();
+			javabean.Disease disease = (javabean.Disease) session.getAttribute("disease");
+			
+			// 计算每个推荐耗材的平均使用数量
+			for (Supply supply : recommandSupplyList) {
+				if (disease != null) {
+					// 计算该耗材在该病种中的平均使用数量
+					int averageQuantity = new DBSearch().getAverageSupplyQuantityForDisease(disease.getID(), supply.getID());
+					supplyToAverageQuantityMap.put(supply.getID(), averageQuantity);
+					System.out.println("    平均使用数量: " + averageQuantity);
+				}
+			}
+			
 			// 传递数据到JSP页面
 			request.setAttribute("currentSupply", currentSupply);
 			request.setAttribute("recommandSupplyList", recommandSupplyList);
+			request.setAttribute("supplyToAverageQuantityMap", supplyToAverageQuantityMap);
 			request.setAttribute("supplyIndex_ID", supplyIndex_ID);
 			request.setAttribute("supplyIndex_Name", supplyIndex_Name);
 			// 传递兴趣主题ID，用于继续推荐
@@ -340,8 +359,8 @@ public class nextSearch extends HttpServlet {
 		}
 		
 		// 按照概率从高到低排序
-		for(int i = 0;i < arr.length;i++){
-			for(int j = 0; j < arr.length - i - 1;j++){
+		for(int i = 0; i < arr.length - 1; i++){
+			for(int j = 0; j < arr.length - 1 - i; j++){
 				if(arr[j] < arr[j + 1]){
 					double temp1 = arr[j];
 					arr[j] = arr[j + 1];
@@ -378,8 +397,9 @@ public class nextSearch extends HttpServlet {
 			arr[i] = ldaModel.getPhi()[index][i];
 		}
 		
-		for(int i = 0;i < arr.length;i++){
-			for(int j = 0; j < arr.length - i - 1;j++){
+		// 按照概率从高到低排序
+		for(int i = 0; i < arr.length - 1; i++){
+			for(int j = 0; j < arr.length - 1 - i; j++){
 				if(arr[j] < arr[j + 1]){
 					double temp1 = arr[j];
 					arr[j] = arr[j + 1];

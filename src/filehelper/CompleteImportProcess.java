@@ -18,7 +18,8 @@ public class CompleteImportProcess {
             
             // 第二步：导入数据
             System.out.println("\n第二步：导入数据");
-            String basePath = System.getProperty("user.dir") + java.io.File.separator + "数据" + java.io.File.separator;
+            // 修改数据文件路径到D盘根目录
+            String basePath = "D:" + java.io.File.separator + "数据" + java.io.File.separator;
             
             String caseFilePath = basePath + "病例表.csv";
             String diseaseFilePath = basePath + "病种表.csv";

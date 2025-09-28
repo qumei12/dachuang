@@ -1,3 +1,4 @@
+<%@page import="java.util.Map"%>
 <%@page import="java.util.List"%>
 <%@page import="javabean.Disease"%>
 <%@ page language="java" contentType="text/html; charset=utf-8"
@@ -244,10 +245,21 @@ p, p>a {
 
 	</div>
 	<div class="foot">
+		<%
+			// 计算总价（但不显示）
+			double totalAmount = 0.0;
+			Map<Integer, Integer> supplyToAverageQuantityMap = (Map<Integer, Integer>) request.getAttribute("supplyToAverageQuantityMap");
+		%>
+		
 		<table class='apiTable'>
 			<thead>
 				<tr>
 					<th>推荐耗材</th>
+					<th>产品名称</th>
+					<th>规格</th>
+					<th>单价</th>
+					<th>数量</th>
+					<th>小计</th>
 					<th>操作</th>
 				</tr>
 			</thead>
@@ -262,6 +274,50 @@ p, p>a {
 							<%= recommandSupply.getNAME() %>
 						</a>
 					</td>
+					<td><%= recommandSupply.getPRODUCT_NAME() != null ? recommandSupply.getPRODUCT_NAME() : "无产品名称" %></td>
+					<td><%= recommandSupply.getURL() != null ? recommandSupply.getURL() : "无规格" %></td>
+					<td>
+						<% 
+							double unitPrice = 0.0;
+							if (recommandSupply.getPRICE() != null && !recommandSupply.getPRICE().isEmpty() && !recommandSupply.getPRICE().equals("0")) {
+								try {
+									unitPrice = Double.parseDouble(recommandSupply.getPRICE());
+									out.print("¥" + String.format("%.2f", unitPrice));
+								} catch (NumberFormatException e) {
+									out.print("暂无价格");
+								}
+							} else {
+								out.print("暂无价格");
+							}
+						%>
+					</td>
+					<td>
+						<%
+							int averageQuantity = 0;
+							if (supplyToAverageQuantityMap != null) {
+								Integer quantity = supplyToAverageQuantityMap.get(recommandSupply.getID());
+								if (quantity != null) {
+									averageQuantity = quantity;
+									out.print(averageQuantity);
+								} else {
+									out.print("0");
+								}
+							} else {
+								out.print("0");
+							}
+						%>
+					</td>
+					<td>
+						<%
+							double subtotal = unitPrice * averageQuantity;
+							totalAmount += subtotal;
+							if (unitPrice > 0 && averageQuantity > 0) {
+								out.print("¥" + String.format("%.2f", subtotal));
+							} else {
+								out.print("¥0.00");
+							}
+						%>
+					</td>
 					<td>
 						<input type='button' class="btn-recommend" value='替换' 
 							onclick="replaceSupply(<%=recommandSupply.getID() %>);"/>
@@ -272,7 +328,7 @@ p, p>a {
 					} else {
 				%>
 				<tr>
-					<td colspan="2">没有推荐结果</td>
+					<td colspan="7">没有推荐结果</td>
 				</tr>
 				<%
 					}

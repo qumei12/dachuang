@@ -7,6 +7,8 @@ public class Supply {
 	private String URL;
 	private int DISEASE_ID;
 	private int SUPPLY_ID;
+	private String PRODUCT_NAME; // 添加产品名称字段
+	private String PRICE; // 添加价格字段
 
 	public Supply() {
 		super();
@@ -70,6 +72,22 @@ public class Supply {
 	public void setSUPPLY_ID(int supplyId) {
 		SUPPLY_ID = supplyId;
 	}
+	
+	public String getPRODUCT_NAME() {
+		return PRODUCT_NAME;
+	}
+	
+	public void setPRODUCT_NAME(String product_name) {
+		PRODUCT_NAME = product_name;
+	}
+	
+	public String getPRICE() {
+		return PRICE;
+	}
+	
+	public void setPRICE(String price) {
+		PRICE = price;
+	}
 
 	@Override
 	public int hashCode() {
@@ -81,6 +99,8 @@ public class Supply {
 		result = prime * result + ((NAME == null) ? 0 : NAME.hashCode());
 		result = prime * result + SUPPLY_ID;
 		result = prime * result + ((URL == null) ? 0 : URL.hashCode());
+		result = prime * result + ((PRODUCT_NAME == null) ? 0 : PRODUCT_NAME.hashCode());
+		result = prime * result + ((PRICE == null) ? 0 : PRICE.hashCode());
 		return result;
 	}
 
@@ -114,13 +134,23 @@ public class Supply {
 				return false;
 		} else if (!URL.equals(other.URL))
 			return false;
+		if (PRODUCT_NAME == null) {
+			if (other.PRODUCT_NAME != null)
+				return false;
+		} else if (!PRODUCT_NAME.equals(other.PRODUCT_NAME))
+			return false;
+		if (PRICE == null) {
+			if (other.PRICE != null)
+				return false;
+		} else if (!PRICE.equals(other.PRICE))
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
 		return "Supply [ID=" + ID + ", NAME=" + NAME + ", DESCRIPTION=" + DESCRIPTION + ", URL=" + URL + ", DISEASE_ID="
-				+ DISEASE_ID + ", SUPPLY_ID=" + SUPPLY_ID + "]";
+				+ DISEASE_ID + ", SUPPLY_ID=" + SUPPLY_ID + ", PRODUCT_NAME=" + PRODUCT_NAME + ", PRICE=" + PRICE + "]";
 	}
 
 }

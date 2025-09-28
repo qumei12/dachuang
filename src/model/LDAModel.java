@@ -34,13 +34,13 @@ public class LDAModel {
 
 
 	public LDAModel() {
-		topicAmount = 80;              // 主题数量
+		topicAmount = 30;              // 主题数量
 		alpha = 0.1;                   // Dirichlet参数
-		beta = 0.05;                   // Dirichlet参数
+		beta = 1;                   // Dirichlet参数
 
-		iterations = 100;             // 迭代次数
+		iterations = 200;             // 迭代次数
 		saveStep = 10;                 // 保存步长
-		beginSaveIters = 20;           // 开始保存迭代次数
+		beginSaveIters = 150;           // 开始保存迭代次数
 	}
 
 	public void initializeLDAModel() {
@@ -100,8 +100,9 @@ public class LDAModel {
 			for (int n = 0; n < N; n++) {
 				int initTopic = (int) (Math.random() * topicAmount);
 				z[m][n] = initTopic;
+				int supplyIndex = CasesSupplies[m][n];  // 获取实际的耗材索引
 				CasesTopics[m][initTopic]++;
-				TopicsSupplies[initTopic][n]++;  // 注意：这里应该是耗材索引n
+				TopicsSupplies[initTopic][supplyIndex]++;  // 使用实际的耗材索引
 				CasesTopics_sum[m]++;
 				TopicsSupplies_sum[initTopic]++;
 			}
@@ -128,6 +129,9 @@ public class LDAModel {
 				}
 			}
 		}
+		
+		// 训练结束后更新最终参数
+		updateEstimatedParameters();
 	}
 
 	// 采样主题分配

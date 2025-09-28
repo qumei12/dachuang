@@ -63,6 +63,13 @@
 			width: 120px;
 			text-align: center;
 		}
+		.summary {
+			background-color: #f0f8ff;
+			padding: 15px;
+			border-radius: 5px;
+			margin-bottom: 20px;
+			font-weight: bold;
+		}
 	</style>
 	<script type="text/javascript">
 		function continueRecommendation(supplyId, diseaseIndex, interestId, rowIndex) {
@@ -90,6 +97,10 @@
 		ArrayList<Supply> supplyList = (ArrayList<Supply>) request.getAttribute("supplyList");
 		Integer diseaseIndex = (Integer) request.getAttribute("diseaseIndex");
 		Map<Integer, Integer> supplyToInterestMap = (Map<Integer, Integer>) request.getAttribute("supplyToInterestMap");
+		
+		// 计算总价
+		double totalAmount = 0.0;
+		Map<Integer, Integer> supplyToAverageQuantityMap = (Map<Integer, Integer>) request.getAttribute("supplyToAverageQuantityMap");
 	%>
 
 	<% if (disease != null) { %>
@@ -108,22 +119,61 @@
 	<table>
 		<tr>
 			<th>ID</th>
-			<th>耗材名称</th>
-			<th>描述</th>
-			<th>价格</th>
+			<th>耗材ID</th>
+			<th>产品名称</th>
+			<th>规格</th>
+			<th>单价</th>
+			<th>数量</th>
+			<th>小计</th>
 			<th class="action-column">操作</th>
 		</tr>
 		<% for (Supply supply : supplyList) { %>
 		<tr data-supply="<%= supply.getID() %>">
 			<td><%= supply.getID() %></td>
 			<td><%= supply.getNAME() %></td>
-			<td><%= supply.getDESCRIPTION() != null ? supply.getDESCRIPTION() : "无描述" %></td>
+			<td><%= supply.getPRODUCT_NAME() != null ? supply.getPRODUCT_NAME() : "无产品名称" %></td>
+			<td><%= supply.getURL() != null ? supply.getURL() : "无规格" %></td>
 			<td>
-				<% if (supply.getURL() != null && !supply.getURL().isEmpty()) { %>
-					<a href="<%= supply.getURL() %>" target="_blank"><%= supply.getURL() %></a>
-				<% } else { %>
-					无网址
-				<% } %>
+				<% 
+					double unitPrice = 0.0;
+					if (supply.getPRICE() != null && !supply.getPRICE().isEmpty() && !supply.getPRICE().equals("0")) {
+						try {
+							unitPrice = Double.parseDouble(supply.getPRICE());
+							out.print("¥" + String.format("%.2f", unitPrice));
+						} catch (NumberFormatException e) {
+							out.print("暂无价格");
+						}
+					} else {
+						out.print("暂无价格");
+					}
+				%>
+			</td>
+			<td>
+				<%
+					int averageQuantity = 0;
+					if (supplyToAverageQuantityMap != null) {
+						Integer quantity = supplyToAverageQuantityMap.get(supply.getID());
+						if (quantity != null) {
+							averageQuantity = quantity;
+							out.print(averageQuantity);
+						} else {
+							out.print("0");
+						}
+					} else {
+						out.print("0");
+					}
+				%>
+			</td>
+			<td>
+				<%
+					double subtotal = unitPrice * averageQuantity;
+					totalAmount += subtotal;
+					if (unitPrice > 0 && averageQuantity > 0) {
+						out.print("¥" + String.format("%.2f", subtotal));
+					} else {
+						out.print("¥0.00");
+					}
+				%>
 			</td>
 			<td class="action-column">
 				<%
@@ -142,6 +192,10 @@
 			</td>
 		</tr>
 		<% } %>
+		<tr>
+			<td colspan="6" style="text-align: right; font-weight: bold;">总价:</td>
+			<td colspan="2" style="font-weight: bold;">¥<%= String.format("%.2f", totalAmount) %></td>
+		</tr>
 	</table>
 	<% } else { %>
 	<p>该病种没有关联的耗材。</p>
