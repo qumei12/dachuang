@@ -97,6 +97,7 @@
 		ArrayList<Supply> supplyList = (ArrayList<Supply>) request.getAttribute("supplyList");
 		Integer diseaseIndex = (Integer) request.getAttribute("diseaseIndex");
 		Map<Integer, Integer> supplyToInterestMap = (Map<Integer, Integer>) request.getAttribute("supplyToInterestMap");
+		Double drgPaymentStandard = (Double) request.getAttribute("drgPaymentStandard");
 		
 		// 计算总价
 		double totalAmount = 0.0;
@@ -108,18 +109,18 @@
 		<h3>病种信息</h3>
 		<p><strong>drg编码:</strong> <%= disease.getNAME() %></p>
 		<p><strong>drg名称:</strong> <%= disease.getDESCRIPTION() != null ? disease.getDESCRIPTION() : "无描述" %></p>
-		<% if (disease.getURL() != null && !disease.getURL().isEmpty()) { %>
-		<p><strong>网址:</strong> <a href="<%= disease.getURL() %>" target="_blank"><%= disease.getURL() %></a></p>
+		<% if (drgPaymentStandard != null && drgPaymentStandard > 0) { %>
+		<p><strong>DRG支付标准:</strong> ¥<%= String.format("%.2f", drgPaymentStandard) %></p>
 		<% } %>
 	</div>
-	<% } %>
+<% } %>
 
 	<h3>关联的耗材列表</h3>
 	<% if (supplyList != null && !supplyList.isEmpty()) { %>
 	<table>
 		<tr>
 			<th>ID</th>
-			<th>耗材ID</th>
+			<th>耗材id</th>
 			<th>产品名称</th>
 			<th>规格</th>
 			<th>单价</th>
@@ -196,6 +197,14 @@
 			<td colspan="6" style="text-align: right; font-weight: bold;">总价:</td>
 			<td colspan="2" style="font-weight: bold;">¥<%= String.format("%.2f", totalAmount) %></td>
 		</tr>
+		<% if (drgPaymentStandard != null && drgPaymentStandard > 0) { %>
+		<tr>
+			<td colspan="6" style="text-align: right; font-weight: bold;">占DRG支付标准比例:</td>
+			<td colspan="2" style="font-weight: bold;">
+				<%= String.format("%.2f", (totalAmount / drgPaymentStandard) * 100) %>%
+			</td>
+		</tr>
+		<% } %>
 	</table>
 	<% } else { %>
 	<p>该病种没有关联的耗材。</p>

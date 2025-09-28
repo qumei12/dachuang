@@ -4,7 +4,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>服务推荐原型系统</title>
+<title>耗材推荐原型系统</title>
 <script type="text/javascript" src='jquery-1.12.2.js'></script>
 <style type="text/css">
 .pic {

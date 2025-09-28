@@ -25,6 +25,14 @@ import model.ModelTrainer;
 import dbhelper.DBSearch;
 import filehelper.CaseSupplyMatrixService;
 
+// 添加IO相关的导入
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Servlet implementation class Search
  */
@@ -47,6 +55,7 @@ public class Search extends HttpServlet {
 
 	// 默认topK值
 	private static final int DEFAULT_TOPK = 3;
+	private static final int top_k = 3;
 
 	/**
 	 * @see HttpServlet#HttpServlet()
@@ -85,6 +94,192 @@ public class Search extends HttpServlet {
 
 		iu = new IndexUtil();
 		iu.createIndex(diseaseIndex_Name);
+	}
+	
+	/**
+	 * 解析CSV行，支持带引号的字段
+	 * @param line CSV行内容
+	 * @return 字段数组
+	 */
+	private static String[] parseCsvLine(String line) {
+		if (line == null || line.trim().isEmpty()) {
+			return new String[0];
+		}
+		
+		java.util.ArrayList<String> values = new java.util.ArrayList<>();
+		StringBuilder current = new StringBuilder();
+		boolean inQuotes = false;
+		
+		for (int i = 0; i < line.length(); i++) {
+			char c = line.charAt(i);
+			
+			if (c == '"') {
+				// 检查是否是转义引号
+				if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
+					// 双引号表示一个引号字符
+					current.append('"');
+					i++; // 跳过下一个引号
+				} else {
+					// 切换引号状态
+					inQuotes = !inQuotes;
+				}
+			} else if (c == ',' && !inQuotes) {
+				values.add(current.toString());
+				current = new StringBuilder();
+			} else {
+				current.append(c);
+			}
+		}
+		
+		// 添加最后一个字段
+		values.add(current.toString());
+		
+		// 清理每个字段值，去除首尾空格但保留引号内的空格
+		String[] result = new String[values.size()];
+		for (int i = 0; i < values.size(); i++) {
+			result[i] = values.get(i).trim();
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * 根据DRG编码获取支付标准
+	 * @param drgCode DRG编码
+	 * @return 支付标准金额，如果未找到则返回0.0
+	 */
+	private static double getPaymentStandardByDrgCode(String drgCode) {
+		String CSV_FILE_PATH = "D:\\数据\\单病种用耗推荐模型_数据源.csv";
+		
+		System.out.println("正在查找DRG编码: " + drgCode);
+		
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CSV_FILE_PATH), StandardCharsets.UTF_8))) {
+			String line;
+			boolean isFirstLine = true;
+			int lineCount = 0;
+			
+			while ((line = br.readLine()) != null) {
+				lineCount++;
+				
+				// 跳过标题行
+				if (isFirstLine) {
+					isFirstLine = false;
+					System.out.println("CSV标题行: " + line);
+					continue;
+				}
+				
+				// 使用项目中已有的CSV解析方法解析行
+				String[] values = parseCsvLine(line);
+				if (values.length >= 32) { // 确保有足够的列
+					String currentDrgCode = values[26].trim(); // DRG编码在第27列（索引26）
+					String paymentStandardStr = values[31].trim(); // DRG支付标准在第32列（索引31）
+					
+					// 调试信息
+					if (lineCount <= 5) {
+						System.out.println("第" + lineCount + "行数据 - DRG编码: '" + currentDrgCode + "', 支付标准: '" + paymentStandardStr + "'");
+					}
+					
+					// 只处理非空的DRG编码
+					if (!currentDrgCode.isEmpty() && currentDrgCode.equals(drgCode)) {
+						System.out.println("找到匹配的DRG编码: " + currentDrgCode + ", 支付标准: " + paymentStandardStr);
+						try {
+							double paymentStandard = Double.parseDouble(paymentStandardStr);
+							System.out.println("成功解析DRG支付标准: " + paymentStandard);
+							return paymentStandard;
+						} catch (NumberFormatException e) {
+							// 忽略无法解析的支付标准值
+							System.err.println("无法解析DRG支付标准值: " + paymentStandardStr);
+						}
+					}
+				} else {
+					System.err.println("第" + lineCount + "行数据列数不足: " + values.length);
+				}
+			}
+			System.out.println("未找到DRG编码 '" + drgCode + "' 对应的支付标准");
+		} catch (Exception e) {
+			System.err.println("读取DRG支付标准CSV文件时出错: " + e.getMessage());
+			e.printStackTrace();
+		}
+		
+		return 0.0;
+	}
+	
+	/**
+	 * 获取病种的TopK兴趣主题
+	 * @param index 病种索引
+	 * @param top TopK数量
+	 * @return 兴趣主题索引数组
+	 */
+	private int[] getTopInterest(int index, int top){
+		int[] recom = new int[top];
+		
+		Double[] arr = new Double[ldaModel.getTheta()[index].length];
+		int[] arr_index = new int[ldaModel.getTheta()[index].length];
+		
+		for(int i = 0; i < ldaModel.getTheta()[index].length; i++){
+			arr_index[i] = i;
+			arr[i] = ldaModel.getTheta()[index][i];
+		}
+		
+		// 按照概率从高到低排序
+		for(int i = 0; i < arr.length - 1; i++){
+			for(int j = 0; j < arr.length - 1 - i; j++){
+				if(arr[j] < arr[j + 1]){
+					double temp1 = arr[j];
+					arr[j] = arr[j + 1];
+					arr[j + 1] = temp1;
+					
+					int temp2 = arr_index[j];
+					arr_index[j] = arr_index[j + 1];
+					arr_index[j + 1] = temp2;
+				}
+			}
+		}
+		
+		for(int i = 0; i < Math.min(top, arr_index.length); i++){
+			recom[i] = arr_index[i];
+		}
+		
+		return recom;
+	}
+	
+	/**
+	 * 获取兴趣主题下的TopK耗材
+	 * @param index 兴趣主题索引
+	 * @param top TopK数量
+	 * @return 耗材索引数组
+	 */
+	private int[] getTopSupply(int index, int top){
+		int[] recom = new int[top];
+		
+		double[] arr = new double[ldaModel.getPhi()[index].length];
+		int[] arr_index = new int[ldaModel.getPhi()[index].length];
+		
+		for(int i = 0; i < ldaModel.getPhi()[index].length; i++){
+			arr_index[i] = i;
+			arr[i] = ldaModel.getPhi()[index][i];
+		}
+		
+		// 按照概率从高到低排序
+		for(int i = 0; i < arr.length - 1; i++){
+			for(int j = 0; j < arr.length - 1 - i; j++){
+				if(arr[j] < arr[j + 1]){
+					double temp1 = arr[j];
+					arr[j] = arr[j + 1];
+					arr[j + 1] = temp1;
+					
+					int temp2 = arr_index[j];
+					arr_index[j] = arr_index[j + 1];
+					arr_index[j + 1] = temp2;
+				}
+			}
+		}
+		
+		for(int i = 0; i < Math.min(top, arr_index.length); i++){
+			recom[i] = arr_index[i];
+		}
+		
+		return recom;
 	}
 	
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -136,7 +331,7 @@ public class Search extends HttpServlet {
 			
 			// 使用LDA模型为病种推荐耗材，而不是直接从数据库获取关联耗材
 			// 智能计算最优推荐主题数量
-			int dynamicTopK = calculateOptimalRecommendationCount(diseaseIndex, disease, ldaModel);
+			int dynamicTopK = determineTopKForSearch(diseaseName);
 			
 			// 使用IndexUtil的推荐方法进行推荐（使用LDA模型）
 			List<Supply> recommandSupplyList = iu.recommendOneSupplyPerInterestByLDAModel(
@@ -253,10 +448,14 @@ public class Search extends HttpServlet {
 				System.out.println("    平均使用数量: " + averageQuantity);
 			}
 			
+			// 获取DRG支付标准
+			double drgPaymentStandard = getPaymentStandardByDrgCode(disease.getNAME());
+			
 			// 传递数据到JSP页面
 			request.setAttribute("disease", disease);
 			request.setAttribute("supplyList", limitedSupplyList);
 			request.setAttribute("supplyToAverageQuantityMap", supplyToAverageQuantityMap);
+			request.setAttribute("drgPaymentStandard", drgPaymentStandard);
 			request.setAttribute("diseaseIndex", diseaseIndex);
 			request.setAttribute("supplyToInterestMap", supplyToInterestMap);
 			request.setAttribute("diseaseIndex_ID", diseaseIndex_ID);
@@ -435,49 +634,54 @@ public class Search extends HttpServlet {
 	}
 	
 	/**
-	 * 根据病种在各主题上的概率分布智能确定推荐主题数量
-	 * 
-	 * @param diseaseIndex 病种索引
-	 * @param disease 病种对象
-	 * @param ldaModel LDA模型
-	 * @return 推荐的主题数量
+	 * 根据病种名称确定topK值
+	 * @param diseaseName 病种名称
+	 * @return topK值
 	 */
-	private int calculateOptimalRecommendationCount(int diseaseIndex, Disease disease, LDAModel ldaModel) {
-		// 最小推荐主题数
-		final int MIN_RECOMMENDATIONS = 1;
-		
-		// 最大推荐主题数
-		final int MAX_RECOMMENDATIONS = 20;
-		
-		// 最小主题概率阈值
-		final double MIN_PROBABILITY_THRESHOLD = 0.01; // 1%
-		
-		// 累积概率阈值
-		final double CUMULATIVE_PROBABILITY_THRESHOLD = 0.8; // 80%
+	private int determineTopKForSearch(String diseaseName) {
+		if (diseaseName == null || diseaseName.trim().isEmpty()) {
+			return DEFAULT_TOPK;
+		}
 
-		// 获取病种在各主题上的概率分布
-		// 使用病种下所有病案的平均主题分布
-		Double[] interestProbs = new Double[ldaModel.getTopicAmount()];
-		
-		// 获取该病种下所有病案的索引
-		int diseaseId = disease.getID(); // 获取病种在数据库中的ID
-		List<Integer> caseIndexes = CaseSupplyMatrixService.getCaseIndexesByDiseaseId(diseaseId);
-		
-		if (caseIndexes != null && !caseIndexes.isEmpty()) {
-			// 计算所有病案的平均主题分布
-			for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
-				interestProbs[k] = 0.0;
+		// 查找病种索引
+		Integer diseaseIndex = null;
+		for (Map.Entry<Integer, String> entry : diseaseIndex_Name.entrySet()) {
+			if (entry.getValue().equals(diseaseName)) {
+				diseaseIndex = entry.getKey();
+				break;
 			}
-			
+		}
+
+		// 如果找不到病种索引，返回默认值
+		if (diseaseIndex == null) {
+			return DEFAULT_TOPK;
+		}
+
+		// 获取该病种下所有病案的索引
+		DBSearch dbs = new DBSearch();
+		Disease disease = dbs.getMashupByName(diseaseName);
+		if (disease == null) {
+			return DEFAULT_TOPK;
+		}
+
+		List<Integer> caseIndexes = CaseSupplyMatrixService.getCaseIndexesByDiseaseId(disease.getID());
+
+		// 计算病种在各个主题上的平均分布
+		Double[] interestProbs = new Double[ldaModel.getTopicAmount()];
+		for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
+			interestProbs[k] = 0.0;
+		}
+
+		if (caseIndexes != null && !caseIndexes.isEmpty()) {
+			// 使用病种下所有病案的平均主题分布
 			for (int caseIndex : caseIndexes) {
-				// 确保病案索引在有效范围内
 				if (caseIndex >= 0 && caseIndex < ldaModel.getCaseAmount()) {
 					for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
 						interestProbs[k] += ldaModel.getTheta()[caseIndex][k];
 					}
 				}
 			}
-			
+
 			// 计算平均值
 			for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
 				interestProbs[k] /= caseIndexes.size();
@@ -488,121 +692,42 @@ public class Search extends HttpServlet {
 				interestProbs[k] = ldaModel.getTheta()[diseaseIndex][k];
 			}
 		}
-		
-		// 按概率降序排序
-		List<Double> sortedProbs = new ArrayList<>(Arrays.asList(interestProbs));
-		Collections.sort(sortedProbs, Collections.reverseOrder());
-		
-		// 方法1: 基于累积概率阈值
-		int countByCumulative = getRecommendationCountByCumulativeProbability(sortedProbs, CUMULATIVE_PROBABILITY_THRESHOLD);
-		
-		// 方法2: 基于最小概率阈值
-		int countByMinThreshold = getRecommendationCountByMinThreshold(sortedProbs, MIN_PROBABILITY_THRESHOLD);
-		
-		// 方法3: 基于肘部法则(Elbow Method)
-		int countByElbow = getRecommendationCountByElbowMethod(sortedProbs);
-		
-		// 综合决策：取多种方法的平均值
-		int finalCount = (int) Math.round((countByCumulative + countByMinThreshold + countByElbow) / 3.0);
-		
-		// 确保在合理范围内
-		finalCount = Math.max(MIN_RECOMMENDATIONS, finalCount);
-		finalCount = Math.min(MAX_RECOMMENDATIONS, finalCount);
-		
-		System.out.println("智能推荐数量计算:");
-		System.out.println("  基于累积概率: " + countByCumulative);
-		System.out.println("  基于最小阈值: " + countByMinThreshold);
-		System.out.println("  基于肘部法则: " + countByElbow);
-		System.out.println("  基于平均值: " + finalCount);
-		
-		return finalCount;
-	}
-	
-	/**
-	 * 基于累积概率阈值确定推荐数量
-	 * 
-	 * @param sortedProbs 按概率降序排列的主题概率列表
-	 * @param threshold 累积概率阈值
-	 * @return 推荐数量
-	 */
-	private int getRecommendationCountByCumulativeProbability(List<Double> sortedProbs, double threshold) {
-		double cumulativeProb = 0.0;
-		int count = 0;
-		
-		for (Double prob : sortedProbs) {
-			cumulativeProb += prob;
-			count++;
-			
-			// 当累积概率达到阈值时停止
-			if (cumulativeProb >= threshold) {
-				break;
-			}
-		}
-		
-		return count;
-	}
-	
-	/**
-	 * 基于最小概率阈值确定推荐数量
-	 * 
-	 * @param sortedProbs 按概率降序排列的主题概率列表
-	 * @param threshold 最小概率阈值
-	 * @return 推荐数量
-	 */
-	private int getRecommendationCountByMinThreshold(List<Double> sortedProbs, double threshold) {
-		int count = 0;
-		
-		for (Double prob : sortedProbs) {
-			// 当概率低于阈值时停止
-			if (prob < threshold) {
-				break;
-			}
-			count++;
-		}
-		
-		return count;
-	}
-	
-	/**
-	 * 基于肘部法则确定推荐数量
-	 * 
-	 * @param sortedProbs 按概率降序排列的主题概率列表
-	 * @return 推荐数量
-	 */
-	private int getRecommendationCountByElbowMethod(List<Double> sortedProbs) {
-		if (sortedProbs.size() <= 2) {
-			return sortedProbs.size();
-		}
-		
-		// 计算相邻概率的差值
-		List<Double> differences = new ArrayList<>();
-		for (int i = 0; i < sortedProbs.size() - 1; i++) {
-			differences.add(sortedProbs.get(i) - sortedProbs.get(i + 1));
-		}
-		
-		// 找到差值最大的点，即"肘部"
-		double maxDifference = -1;
-		int elbowIndex = 0;
-		
-		for (int i = 0; i < differences.size(); i++) {
-			if (differences.get(i) > maxDifference) {
-				maxDifference = differences.get(i);
-				elbowIndex = i;
-			}
-		}
-		
-		// 肘部点之后的主题可以认为贡献较小
-		return elbowIndex + 1;
-	}
-	
-	// 根据病种名称确定topK值
-	private int determineTopKForSearch(String diseaseName) {
-		if (diseaseName == null || diseaseName.trim().isEmpty()) {
-			return DEFAULT_TOPK;
+
+		// 动态计算最优的topK值
+		// 1. 计算所有主题概率的总和
+		double totalProb = 0.0;
+		for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
+			totalProb += interestProbs[k];
 		}
 
-		// 直接返回默认值，因为我们现在使用智能计算
-		return DEFAULT_TOPK;
+		// 2. 计算累积概率，确定需要多少个主题才能覆盖大部分概率分布
+		List<Integer> sortedIndices = new ArrayList<>();
+		for (int i = 0; i < ldaModel.getTopicAmount(); i++) {
+			sortedIndices.add(i);
+		}
+
+		// 按照概率排序
+		sortedIndices.sort((o1, o2) -> {
+			if (interestProbs[o1] > interestProbs[o2]) return -1;
+			else if (interestProbs[o1] < interestProbs[o2]) return 1;
+			else return 0;
+		});
+
+		// 计算累积概率，找到覆盖85%以上概率分布所需的主题数
+		double cumulativeProb = 0.0;
+		int dynamicTopK = 3; // 至少推荐3个主题
+		for (int i = 0; i < sortedIndices.size(); i++) {
+			cumulativeProb += interestProbs[sortedIndices.get(i)];
+			if (cumulativeProb >= 0.85 * totalProb) {
+				dynamicTopK = i + 1;
+				break;
+			}
+		}
+
+		// 限制推荐主题数量在合理范围内（最少3个，最多20个）
+		dynamicTopK = Math.max(3, Math.min(20, dynamicTopK));
+
+		return dynamicTopK;
 	}
 
 
