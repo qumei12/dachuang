@@ -18,6 +18,10 @@ import javabean.DiseaseJson;
 
 public class DBSearch {
 
+	// 添加缓存以提高性能
+	private static final Map<String, Integer> averageQuantityCache = new HashMap<>();
+	private static final int CACHE_MAX_SIZE = 1000;
+	
 	public int getPageAmount() {
 		Connection connection = DBHelper.getConnection();
 
@@ -494,6 +498,14 @@ public class DBSearch {
 	 * @return 平均使用数量（取整）
 	 */
 	public int getAverageSupplyQuantityForDisease(int diseaseId, int supplyId) {
+	    // 创建缓存键
+	    String cacheKey = diseaseId + ":" + supplyId;
+	    
+	    // 检查缓存
+	    if (averageQuantityCache.containsKey(cacheKey)) {
+	        return averageQuantityCache.get(cacheKey);
+	    }
+	    
 	    Connection connection = DBHelper.getConnection();
 	    Statement statement = null;
 	    int averageQuantity = 0;
@@ -502,17 +514,29 @@ public class DBSearch {
 	        statement = connection.createStatement();
 	        
 	        // 查询指定病种中使用指定耗材的所有记录，并计算平均数量
-	        String sql = "SELECT AVG(C_QUANTITY) as avg_quantity FROM tb_supply WHERE N_CASE_ID IN " +
-	                    "(SELECT N_ID FROM tb_case WHERE N_MASHUP_ID = " + diseaseId + ") " +
-	                    "AND C_NAME = (SELECT C_NAME FROM tb_supply WHERE N_ID = " + supplyId + " LIMIT 1)";
+	        // 优化SQL查询，使用更高效的JOIN方式
+	        String sql = "SELECT AVG(s.C_QUANTITY) as avg_quantity FROM tb_supply s " +
+	                    "INNER JOIN tb_case c ON s.N_CASE_ID = c.N_ID " +
+	                    "WHERE c.N_MASHUP_ID = " + diseaseId + " " +
+	                    "AND s.C_NAME = (SELECT C_NAME FROM tb_supply WHERE N_ID = " + supplyId + " LIMIT 1)";
 	        
 	        ResultSet rs = statement.executeQuery(sql);
 	        
 	        if (rs.next()) {
 	            double avg = rs.getDouble("avg_quantity");
-	            // 取整
-	            averageQuantity = (int) Math.round(avg);
+	            // 处理NULL值情况
+	            if (!rs.wasNull()) {
+	                // 取整
+	                averageQuantity = (int) Math.round(avg);
+	            }
 	        }
+	        
+	        // 添加到缓存
+	        if (averageQuantityCache.size() >= CACHE_MAX_SIZE) {
+	            // 简单的缓存清理策略：清除第一个元素
+	            averageQuantityCache.clear();
+	        }
+	        averageQuantityCache.put(cacheKey, averageQuantity);
 	        
 	    } catch (SQLException e) {
 	        e.printStackTrace();

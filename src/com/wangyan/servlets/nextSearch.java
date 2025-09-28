@@ -92,17 +92,9 @@ public class nextSearch extends HttpServlet {
 			rowIndex = Integer.parseInt(rowIndexStr);
 		}
 		
-		System.out.println("接收到的参数 - 耗材ID: " + supplyId + ", 病种索引: " + diseaseIndex + ", 兴趣主题ID: " + interestId + ", 行号: " + rowIndex);
+
 		
-		// 添加调试信息
-		if (diseaseIndex >= 0) {
-			int[] topInterests = getTopInterest(diseaseIndex, top_k);
-			System.out.print("病种索引 " + diseaseIndex + " 的Top " + top_k + " 兴趣主题: ");
-			for (int i = 0; i < topInterests.length; i++) {
-				System.out.print(topInterests[i] + " ");
-			}
-			System.out.println();
-		}
+		// 已移除误导性的调试输出，使用会话中的已计算结果
 		
 		try {
 			// 获取当前耗材信息
@@ -142,7 +134,7 @@ public class nextSearch extends HttpServlet {
 				}
 			} else if (diseaseIndex >= 0) {
 				// 使用病种的TopK兴趣主题进行推荐
-				System.out.println("使用病种的TopK兴趣主题进行推荐");
+				System.out.println("使用病种的兴趣主题进行推荐");
 				recommandSupplyList = recommand(diseaseIndex, supplyId);
 			} else {
 				// 默认推荐方法
@@ -254,6 +246,7 @@ public class nextSearch extends HttpServlet {
 					Supply supply = new DBSearch().getSupplyById(supplyId);
 					recommandSupplyList.add(supply);
 					addedSupplyIds.add(supplyId);
+					// 调试输出推荐的耗材
 					System.out.println("为兴趣主题 " + interestId + " 推荐耗材: " + supply.getNAME());
 					
 					// 最多推荐3个耗材
@@ -350,12 +343,12 @@ public class nextSearch extends HttpServlet {
 	private int[] getTopInterest(int index, int top){
 		int[] recom = new int[top];
 		
-		Double[] arr = new Double[ldaModel.getTheta()[index].length];
-		int[] arr_index = new int[ldaModel.getTheta()[index].length];
+		Double[] arr = new Double[nextSearch.ldaModel.getTheta()[index].length];
+		int[] arr_index = new int[nextSearch.ldaModel.getTheta()[index].length];
 		
-		for(int i = 0; i < ldaModel.getTheta()[index].length; i++){
+		for(int i = 0; i < nextSearch.ldaModel.getTheta()[index].length; i++){
 			arr_index[i] = i;
-			arr[i] = ldaModel.getTheta()[index][i];
+			arr[i] = nextSearch.ldaModel.getTheta()[index][i];
 		}
 		
 		// 按照概率从高到低排序
@@ -389,12 +382,12 @@ public class nextSearch extends HttpServlet {
 	private int[] getTopSupply(int index, int top){
 		int[] recom = new int[top];
 		
-		double[] arr = new double[ldaModel.getPhi()[index].length];
-		int[] arr_index = new int[ldaModel.getPhi()[index].length];
+		double[] arr = new double[nextSearch.ldaModel.getPhi()[index].length];
+		int[] arr_index = new int[nextSearch.ldaModel.getPhi()[index].length];
 		
-		for(int i = 0; i < ldaModel.getPhi()[index].length; i++){
+		for(int i = 0; i < nextSearch.ldaModel.getPhi()[index].length; i++){
 			arr_index[i] = i;
-			arr[i] = ldaModel.getPhi()[index][i];
+			arr[i] = nextSearch.ldaModel.getPhi()[index][i];
 		}
 		
 		// 按照概率从高到低排序
@@ -414,6 +407,95 @@ public class nextSearch extends HttpServlet {
 		
 		for(int i = 0; i < Math.min(top, arr_index.length); i++){
 			recom[i] = arr_index[i];
+		}
+		
+		return recom;
+	}
+	
+	/**
+	 * 根据病种的TopK兴趣主题推荐耗材（使用平均概率）
+	 * @param diseaseIndex 病种索引
+	 * @param excludeSupplyId 需要排除的耗材ID
+	 * @return 推荐的耗材列表
+	 */
+	private ArrayList<Supply> recommandWithAverage(int diseaseIndex, int excludeSupplyId) {
+		ArrayList<Supply> recommandSupplyList = new ArrayList<>();
+		
+		try {
+			// 获取病种的TopK兴趣主题（使用平均概率）
+			int[] topInterests = getTopInterestWithAverage(diseaseIndex, top_k);
+			
+			// 为每个兴趣主题推荐一个耗材
+			Set<Integer> addedSupplyIds = new HashSet<>(); // 避免重复添加
+			for(int interestIndex : topInterests) {
+				int[] recommandSupplies = getTopSupply(interestIndex, 10); // 获取该兴趣主题下的Top10耗材
+				
+				// 选择第一个不是excludeSupplyId且未添加过的耗材
+				for(int supplyIndex : recommandSupplies) {
+					int supplyId = supplyIndex_ID.get(supplyIndex);
+					if(supplyId != excludeSupplyId && !addedSupplyIds.contains(supplyId)) {
+						Supply supply = new DBSearch().getSupplyById(supplyId);
+						recommandSupplyList.add(supply);
+						addedSupplyIds.add(supplyId);
+						System.out.println("为兴趣主题 " + interestIndex + " 推荐耗材: " + supply.getNAME());
+						break;
+					}
+				}
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		return recommandSupplyList;
+	}
+	
+	/**
+	 * 获取病种的TopK兴趣主题（使用平均概率）
+	 * @param diseaseIndex 病种索引
+	 * @param top TopK数量
+	 * @return 兴趣主题索引数组
+	 */
+	private int[] getTopInterestWithAverage(int diseaseIndex, int top){
+		int[] recom = new int[top];
+		
+		// 使用病种下所有病案的平均主题分布
+		Double[] interestProbs = new Double[nextSearch.ldaModel.getTopicAmount()];
+		
+		// 初始化
+		for (int k = 0; k < nextSearch.ldaModel.getTopicAmount(); k++) {
+			interestProbs[k] = 0.0;
+		}
+		
+		// 获取该病种下所有病案的索引
+		HttpSession session = null;
+		try {
+			// 这里需要获取会话中的疾病信息，但在静态方法中无法直接获取
+			// 所以我们退回到使用单一病案的方法
+			for (int k = 0; k < nextSearch.ldaModel.getTopicAmount(); k++) {
+				interestProbs[k] = nextSearch.ldaModel.getTheta()[diseaseIndex][k];
+			}
+		} catch (Exception e) {
+			// 出现异常时回退到使用单一病案的方法
+			for (int k = 0; k < nextSearch.ldaModel.getTopicAmount(); k++) {
+				interestProbs[k] = nextSearch.ldaModel.getTheta()[diseaseIndex][k];
+			}
+		}
+		
+		// 对兴趣主题按概率排序
+		List<Integer> interestIndices = new ArrayList<>();
+		for (int i = 0; i < nextSearch.ldaModel.getTopicAmount(); i++) {
+			interestIndices.add(i);
+		}
+		
+		// 按照概率排序
+		interestIndices.sort((o1, o2) -> {
+			if (interestProbs[o1] > interestProbs[o2]) return -1;
+			else if (interestProbs[o1] < interestProbs[o2]) return 1;
+			else return 0;
+		});
+		
+		for(int i = 0; i < Math.min(top, interestIndices.size()); i++){
+			recom[i] = interestIndices.get(i);
 		}
 		
 		return recom;

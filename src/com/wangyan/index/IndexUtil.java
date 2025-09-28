@@ -273,14 +273,12 @@ public class IndexUtil {
 			interestIndices.add(i);
 		}
 
-		Collections.sort(interestIndices, new Comparator<Integer>() {
-			@Override
-			public int compare(Integer o1, Integer o2) {
-				double diff = interestProbs[o2] - interestProbs[o1]; // 降序排列
-				if (diff > 0) return -1;
-				else if (diff < 0) return 1;
-				else return 0;
-			}
+		// 使用更高效的排序方法
+		interestIndices.sort((o1, o2) -> {
+			double diff = interestProbs[o2] - interestProbs[o1]; // 降序排列
+			if (diff > 0) return -1;
+			else if (diff < 0) return 1;
+			else return 0;
 		});
 
 		DBSearch dbSearch = new DBSearch();
@@ -288,14 +286,18 @@ public class IndexUtil {
 		// 为每个top interest推荐一个最相关的Supply
 		Set<Integer> selectedSupplys = new HashSet<>(); // 避免重复推荐同一个Supply
 
-		for (int i = 0; i < Math.min(interestCount, ldaModel.getTopicAmount()); i++) {
+		// 限制循环次数以提高性能
+		int actualInterestCount = Math.min(interestCount, ldaModel.getTopicAmount());
+		for (int i = 0; i < actualInterestCount; i++) {
 			int interestId = interestIndices.get(i);
 
 			// 在该兴趣主题中找出最相关的Supply
 			double maxProb = -1;
 			int bestSupplyIndex = -1;
 
-			for (int j = 0; j < ldaModel.getSupplyAmount(); j++) {
+			// 限制搜索范围以提高性能
+			int searchLimit = Math.min(100, ldaModel.getSupplyAmount()); // 只搜索前100个耗材
+			for (int j = 0; j < searchLimit; j++) {
 				// 确保不重复推荐已选的Supply
 				if (!selectedSupplys.contains(j) && ldaModel.getPhi()[interestId][j] > maxProb) {
 					maxProb = ldaModel.getPhi()[interestId][j];

@@ -74,7 +74,7 @@
 	<script type="text/javascript">
 		function continueRecommendation(supplyId, diseaseIndex, interestId, rowIndex) {
 			// 跳转到继续推荐页面，传递选中的耗材ID、原始病种索引和兴趣主题ID
-			var url = "nextSearch?id=" + supplyId + "&rowIndex=" + rowIndex;
+			var url = "nextSearch?id=" + supplyId + "&rowIndex=" + rowIndex + "&clickedIndex=" + rowIndex;
 			if (diseaseIndex !== undefined && diseaseIndex >= 0) {
 				url += "&diseaseIndex=" + diseaseIndex;
 			}
@@ -189,8 +189,9 @@
 					
 					// 获取行对应的主题ID
 					int interestId = -1;
+					// 从会话中获取rowToInterestList而不是从请求属性中获取
 					@SuppressWarnings("unchecked")
-					List<Integer> rowToInterestList = (List<Integer>) request.getAttribute("rowToInterestList");
+					List<Integer> rowToInterestList = (List<Integer>) session.getAttribute("rowToInterestList");
 					if (rowToInterestList != null && rowIndex >= 0 && rowIndex < rowToInterestList.size()) {
 						interestId = rowToInterestList.get(rowIndex);
 					}

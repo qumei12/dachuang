@@ -38,28 +38,27 @@ import java.util.Set;
  */
 public class Search extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-
-	// LDA算法模型
-	LDAModel ldaModel = null;
-	IndexUtil iu = null;
-
-	Map<Integer, Integer> supplySequ = null;
-	Map<Integer, List<Integer>> diseaseWordsBag = null;
-	Map<Integer, List<Integer>> supplyWordsBag = null;
-
-	Map<Integer, Integer> diseaseIndex_ID = null;
-	Map<Integer, String> diseaseIndex_Name = null;
-
-	Map<Integer, Integer> supplyIndex_ID = null;
-	Map<Integer, String> supplyIndex_Name = null;
-
-	// 默认topK值
-	private static final int DEFAULT_TOPK = 3;
-	private static final int top_k = 3;
-
-	/**
-	 * @see HttpServlet#HttpServlet()
-	 */
+	
+	// 添加缓存以提高性能
+	private static final Map<String, Map<String, Object>> highestCostCaseCache = new HashMap<>();
+	private static final Map<String, Map<String, Object>> lowestCostCaseCache = new HashMap<>();
+	private static final int CACHE_MAX_SIZE = 100;
+	private static final int DEFAULT_TOPK = 10;
+	
+	// LDA模型实例
+	private static LDAModel ldaModel = null;
+	
+	// 其他成员变量
+	private Map<Integer, List<Integer>> supplyWordsBag;
+	private Map<Integer, Integer> diseaseIndex_ID;
+	private Map<Integer, String> diseaseIndex_Name;
+	private Map<Integer, Integer> supplyIndex_ID;
+	private Map<Integer, String> supplyIndex_Name;
+	private IndexUtil iu;
+       
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
 	public Search() {
 		super();
 		// 初始化LDA模型（只初始化一次）
@@ -458,7 +457,7 @@ public class Search extends HttpServlet {
 				else return 0;
 			});
 			
-			System.out.println("病种 \"" + diseaseName + "\" 的Top " + dynamicTopK + " 个兴趣主题:");
+			System.out.println("病种 \"" + diseaseName + "\" 的前 " + dynamicTopK + " 个兴趣主题:");
 			// 正确地为每个推荐的耗材确定其所属的主题
 			int[] interestIds = new int[limitedSupplyList.size()];
 			for (int i = 0; i < Math.min(dynamicTopK, limitedSupplyList.size()); i++) {
@@ -483,13 +482,15 @@ public class Search extends HttpServlet {
 				}
 			}
 			
-			// 显示该病种在所有主题上的概率分布
+			// 显示该病种在所有主题上的概率分布（调试用，可删除）
+			/*
 			System.out.println("病种 \"" + diseaseName + "\" 在所有 " + ldaModel.getTopicAmount() + " 个主题上的概率分布:");
 			for (int i = 0; i < interestIndices.size(); i++) {
 				int topicIndex = interestIndices.get(i);
 				System.out.println("  主题 " + topicIndex + " - 概率: " + String.format("%.6f", interestProbs[topicIndex]) + 
 					(i < dynamicTopK ? " [推荐]" : ""));
 			}
+			*/
 			
 			// 计算每个耗材的平均使用数量
 			// 创建耗材ID到平均使用数量的映射
@@ -873,7 +874,7 @@ public class Search extends HttpServlet {
 		int dynamicTopK = 3; // 至少推荐3个主题
 		for (int i = 0; i < sortedIndices.size(); i++) {
 			cumulativeProb += interestProbs[sortedIndices.get(i)];
-			if (cumulativeProb >= 0.85 * totalProb) {
+			if (cumulativeProb >= 0.80 * totalProb) {
 				dynamicTopK = i + 1;
 				break;
 			}
@@ -892,6 +893,12 @@ public class Search extends HttpServlet {
 	 * @return 包含病案信息和耗材列表的Map
 	 */
 	private static Map<String, Object> getHighestCostCaseSupplies(String drgCode, int maxSupplies) {
+		// 检查缓存
+		String cacheKey = drgCode + ":" + maxSupplies;
+		if (highestCostCaseCache.containsKey(cacheKey)) {
+			return highestCostCaseCache.get(cacheKey);
+		}
+		
 		String CSV_FILE_PATH = "D:\\数据\\单病种用耗推荐模型_数据源.csv";
 		Map<String, Object> result = new HashMap<>();
 		
@@ -990,6 +997,12 @@ public class Search extends HttpServlet {
 					result.put("supplies", supplies);
 				}
 			}
+			
+			// 添加到缓存
+			if (highestCostCaseCache.size() >= CACHE_MAX_SIZE) {
+				highestCostCaseCache.clear();
+			}
+			highestCostCaseCache.put(cacheKey, result);
 		} catch (Exception e) {
 			System.err.println("读取病案耗材信息CSV文件时出错: " + e.getMessage());
 			e.printStackTrace();
@@ -1005,6 +1018,12 @@ public class Search extends HttpServlet {
 	 * @return 包含病案信息和耗材列表的Map
 	 */
 	private static Map<String, Object> getLowestCostCaseSupplies(String drgCode, int maxSupplies) {
+		// 检查缓存
+		String cacheKey = drgCode + ":" + maxSupplies;
+		if (lowestCostCaseCache.containsKey(cacheKey)) {
+			return lowestCostCaseCache.get(cacheKey);
+		}
+		
 		String CSV_FILE_PATH = "D:\\数据\\单病种用耗推荐模型_数据源.csv";
 		Map<String, Object> result = new HashMap<>();
 		
@@ -1103,6 +1122,12 @@ public class Search extends HttpServlet {
 					result.put("supplies", supplies);
 				}
 			}
+			
+			// 添加到缓存
+			if (lowestCostCaseCache.size() >= CACHE_MAX_SIZE) {
+				lowestCostCaseCache.clear();
+			}
+			lowestCostCaseCache.put(cacheKey, result);
 		} catch (Exception e) {
 			System.err.println("读取病案耗材信息CSV文件时出错: " + e.getMessage());
 			e.printStackTrace();
