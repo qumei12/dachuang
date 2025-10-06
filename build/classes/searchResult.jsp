@@ -174,7 +174,6 @@
 			<td>
 				<%
 					double subtotal = unitPrice * averageQuantity;
-					totalAmount += subtotal;
 					if (unitPrice > 0 && averageQuantity > 0) {
 						out.print("¥" + String.format("%.2f", subtotal));
 					} else {
