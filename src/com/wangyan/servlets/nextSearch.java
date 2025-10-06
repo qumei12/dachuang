@@ -236,6 +236,44 @@ public class nextSearch extends HttpServlet {
 		ArrayList<Supply> recommandSupplyList = new ArrayList<>();
 		
 		try {
+			// 输出该主题下从高到低前10个耗材的概率
+			System.out.println("主题 " + interestId + " 下前10个耗材的概率:");
+			
+			// 使用与getTopSupply相同的方法来获取排序结果，确保一致性
+			double[] arr = new double[ldaModel.getPhi()[interestId].length];
+			int[] arr_index = new int[ldaModel.getPhi()[interestId].length];
+			
+			for(int i = 0; i < ldaModel.getPhi()[interestId].length; i++){
+				arr_index[i] = i;
+				arr[i] = ldaModel.getPhi()[interestId][i];
+			}
+			
+			// 按照概率从高到低排序
+			for(int i = 0; i < arr.length - 1; i++){
+				for(int j = 0; j < arr.length - 1 - i; j++){
+					if(arr[j] < arr[j + 1]){
+						double temp1 = arr[j];
+						arr[j] = arr[j + 1];
+						arr[j + 1] = temp1;
+						
+						int temp2 = arr_index[j];
+						arr_index[j] = arr_index[j + 1];
+						arr_index[j + 1] = temp2;
+					}
+				}
+			}
+			
+			// 输出前10个耗材及其概率
+			for (int i = 0; i < Math.min(10, arr_index.length); i++) {
+				int supplyIndex = arr_index[i];
+				String supplyName = supplyIndex_Name.get(supplyIndex);
+				if (supplyName == null) {
+					supplyName = "未知耗材";
+				}
+				// 修正：使用arr[i]而非supplyProbs[supplyIndex]来获取正确的概率值
+				System.out.println("  " + (i+1) + ". 耗材索引: " + supplyIndex + ", 名称: " + supplyName + ", 概率: " + String.format("%.10f", arr[i]));
+			}
+			
 			int[] recommandSupplies = getTopSupply(interestId, 10); // 获取该兴趣主题下的Top10耗材
 			
 			// 选择前几个不是excludeSupplyId的耗材

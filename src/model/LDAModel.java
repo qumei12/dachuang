@@ -34,13 +34,13 @@ public class LDAModel {
 
 
 	public LDAModel() {
-		topicAmount = 30;              // 主题数量
-		alpha = 0.1;                   // Dirichlet参数
-		beta = 1;                   // Dirichlet参数
+		topicAmount = 50;              // 主题数量
+		alpha =0.5;             	   // Dirichlet参数
+		beta = 0.01;                   // Dirichlet参数，较小的值有助于稀疏化
 
-		iterations = 200;             // 恢复为原来的迭代次数
+		iterations = 5000;              // 迭代次数
 		saveStep = 10;                 // 保存步长
-		beginSaveIters = 150;           // 开始保存迭代次数
+		beginSaveIters = 4500;          // 开始保存迭代次数，给模型更多时间收敛
 	}
 
 	public void initializeLDAModel() {
@@ -95,14 +95,45 @@ public class LDAModel {
 		// 初始化主题分配矩阵
 		z = new int[caseAmount][];
 		for (int m = 0; m < caseAmount; m++) {
-			int N = CasesSupplies[m].length;
+			// 计算当前病案中实际使用的耗材数量
+			int N = 0;
+			for (int j = 0; j < supplyAmount; j++) {
+				if (CasesSupplies[m][j] == 1) {
+					N++;
+				}
+			}
+			
+			// 如果病案中没有耗材，确保至少有一个元素防止数组越界
+			if (N == 0) {
+				N = 1;
+			}
+			
 			z[m] = new int[N];
-			for (int n = 0; n < N; n++) {
+			
+			// 为每个实际使用的耗材分配主题
+			int position = 0;
+			for (int n = 0; n < supplyAmount; n++) {
+				if (CasesSupplies[m][n] == 1) {
+					int initTopic = (int) (Math.random() * topicAmount);
+					z[m][position] = initTopic;
+					// 使用列索引n作为耗材索引
+					CasesTopics[m][initTopic]++;
+					TopicsSupplies[initTopic][n]++;  
+					CasesTopics_sum[m]++;
+					TopicsSupplies_sum[initTopic]++;
+					position++;
+				}
+			}
+			
+			// 处理空病案的情况，确保z矩阵至少有一个元素
+			if (position == 0) {
 				int initTopic = (int) (Math.random() * topicAmount);
-				z[m][n] = initTopic;
-				int supplyIndex = CasesSupplies[m][n];  // 获取实际的耗材索引
+				z[m][0] = initTopic;
+				// 为避免影响模型，可以为一个虚拟耗材分配主题
+				// 或者使用第一个耗材作为默认值
+				int defaultSupplyIndex = 0;
 				CasesTopics[m][initTopic]++;
-				TopicsSupplies[initTopic][supplyIndex]++;  // 使用实际的耗材索引
+				TopicsSupplies[initTopic][defaultSupplyIndex]++;  
 				CasesTopics_sum[m]++;
 				TopicsSupplies_sum[initTopic]++;
 			}
@@ -121,8 +152,8 @@ public class LDAModel {
 
 			// Use Gibbs Sampling to update z[][]
 			for (int m = 0; m < caseAmount; m++) {
-				int N = CasesSupplies[m].length;
-				for (int n = 0; n < N; n++) {
+				// 遍历当前病案中实际使用的耗材数量
+				for (int n = 0; n < z[m].length; n++) {
 					// Sample from p(z_i|z_-i, w)
 					int newTopic = sampleTopicZ(m, n);
 					z[m][n] = newTopic;
@@ -138,7 +169,26 @@ public class LDAModel {
 	public int sampleTopicZ(int caseIndex, int position) {
 		// Remove topic label for w_{m,n}
 		int oldTopic = z[caseIndex][position];
-		int supplyIndex = CasesSupplies[caseIndex][position]; // 获取实际的耗材索引
+		
+		// 找到实际的耗材索引
+		int supplyIndex = -1;
+		int currentPosition = 0;
+		for (int j = 0; j < supplyAmount; j++) {
+			if (CasesSupplies[caseIndex][j] == 1) {
+				if (currentPosition == position) {
+					supplyIndex = j;
+					break;
+				}
+				currentPosition++;
+			}
+		}
+		
+		// 如果没有找到对应的耗材索引，使用默认值
+		// 这种情况可能发生在空病案或position超出范围时
+		if (supplyIndex == -1) {
+			supplyIndex = 0;
+		}
+		
 		CasesTopics[caseIndex][oldTopic]--;
 		TopicsSupplies[oldTopic][supplyIndex]--;
 		CasesTopics_sum[caseIndex]--;
@@ -157,6 +207,17 @@ public class LDAModel {
 		for (int k = 1; k < topicAmount; k++) {
 			p[k] += p[k - 1];
 		}
+		
+		// 避免除零错误
+		if (p[topicAmount - 1] <= 0) {
+			// 恢复原来的计数
+			CasesTopics[caseIndex][oldTopic]++;
+			TopicsSupplies[oldTopic][supplyIndex]++;
+			CasesTopics_sum[caseIndex]++;
+			TopicsSupplies_sum[oldTopic]++;
+			return oldTopic; // 如果概率和为0或负数，保持原主题
+		}
+		
 		double u = Math.random() * p[topicAmount - 1]; // p[] is unnormalised
 		int newTopic;
 		for (newTopic = 0; newTopic < topicAmount; newTopic++) {
@@ -171,6 +232,7 @@ public class LDAModel {
 		}
 
 		// Add new topic label for w_{m, n}
+		z[caseIndex][position] = newTopic;
 		CasesTopics[caseIndex][newTopic]++;
 		TopicsSupplies[newTopic][supplyIndex]++;
 		CasesTopics_sum[caseIndex]++;

@@ -463,11 +463,13 @@ public class Search extends HttpServlet {
 				int dynamicTopK = determineTopKForSearch(diseaseName);
 				
 				// 使用IndexUtil的推荐方法进行推荐（使用LDA模型）
+				// 传入病种ID以使用该病种下所有病案的平均主题分布
 				recommandSupplyList = iu.recommendOneSupplyPerInterestByLDAModel(
 					diseaseIndex, 
 					dynamicTopK,
 					ldaModel,
-					supplyIndex_ID
+					supplyIndex_ID,
+					disease.getID()  // 传入病种ID
 				);
 				System.out.println("实时计算推荐结果，共 " + recommandSupplyList.size() + " 个耗材");
 			}
@@ -483,6 +485,20 @@ public class Search extends HttpServlet {
 			
 			// 将推荐结果转换为ArrayList
 			ArrayList<Supply> limitedSupplyList = new ArrayList<>(recommandSupplyList);
+			
+			// 过滤掉在当前病种中没有使用记录的耗材
+			ArrayList<Supply> filteredSupplyList = new ArrayList<>();
+			for (Supply supply : limitedSupplyList) {
+				if (supply != null) {
+					// 检查该耗材在当前病种中是否有使用记录
+					int usageCount = dbs.getAverageSupplyQuantityForDisease(disease.getID(), supply.getID());
+					if (usageCount > 0) {
+						// 只有在当前病种中有使用记录的耗材才保留
+						filteredSupplyList.add(supply);
+					}
+				}
+			}
+			limitedSupplyList = filteredSupplyList;
 			
 			// 创建耗材索引到兴趣主题的映射
 			Map<Integer, Integer> supplyToInterestMap = new HashMap<>();
@@ -948,19 +964,19 @@ public class Search extends HttpServlet {
 			else return 0;
 		});
 
-		// 计算累积概率，找到覆盖85%以上概率分布所需的主题数
+		// 计算累积概率，找到覆盖90%以上概率分布所需的主题数
 		double cumulativeProb = 0.0;
 		int dynamicTopK = 3; // 至少推荐3个主题
 		for (int i = 0; i < sortedIndices.size(); i++) {
 			cumulativeProb += interestProbs[sortedIndices.get(i)];
-			if (cumulativeProb >= 0.80 * totalProb) {
+			if (cumulativeProb >= 0.90 * totalProb) {
 				dynamicTopK = i + 1;
 				break;
 			}
 		}
 
-		// 限制推荐主题数量在合理范围内（最少3个，最多20个）
-		dynamicTopK = Math.max(3, Math.min(20, dynamicTopK));
+		// 限制推荐主题数量的下限（最少3个），但取消上限限制
+		dynamicTopK = Math.max(3, dynamicTopK);
 
 		return dynamicTopK;
 	}

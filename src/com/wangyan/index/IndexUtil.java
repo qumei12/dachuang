@@ -238,10 +238,12 @@ public class IndexUtil {
 	 * @param interestCount 兴趣主题数量
 	 * @param ldaModel 已训练的LDA模型
 	 * @param supplyIndex_ID Supply索引到ID的映射
+	 * @param diseaseId 疾病ID，用于获取该病种下所有病案的索引
 	 * @return 推荐的Supply列表，每个兴趣一个Supply
 	 */
 	public List<Supply> recommendOneSupplyPerInterestByLDAModel(Integer diseaseIndex, int interestCount,
-												LDAModel ldaModel, Map<Integer, Integer> supplyIndex_ID) {
+												LDAModel ldaModel, Map<Integer, Integer> supplyIndex_ID, 
+												int diseaseId) {
 		List<Supply> recommendedSupplys = new ArrayList<>();
 
 		// 检查diseaseIndex是否为null
@@ -258,13 +260,38 @@ public class IndexUtil {
 
 		// 获取用户对各兴趣主题的概率
 		// 使用病种下所有病案的平均主题分布
-		Double[] interestProbs = new Double[ldaModel.getTopicAmount()];
+		double[] interestProbs = new double[ldaModel.getTopicAmount()];
 		
 		// 获取该病种下所有病案的索引
-		// 注意：这里需要从调用方传入病种ID
-		// 由于此方法没有病种ID参数，暂时使用单个病案分布
-		for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
-			interestProbs[k] = ldaModel.getTheta()[diseaseIndex][k];
+		List<Integer> caseIndexes = CaseSupplyMatrixService.getCaseIndexesByDiseaseId(diseaseId);
+		
+		if (caseIndexes != null && !caseIndexes.isEmpty()) {
+			// 使用病种下所有病案的平均主题分布
+			for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
+				interestProbs[k] = 0.0;
+			}
+			
+			for (int caseIndex : caseIndexes) {
+				// 确保病案索引在有效范围内
+				if (caseIndex >= 0 && caseIndex < ldaModel.getCaseAmount()) {
+					for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
+						interestProbs[k] += ldaModel.getTheta()[caseIndex][k];
+					}
+				}
+			}
+			
+			// 计算平均值
+			for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
+				interestProbs[k] /= caseIndexes.size();
+			}
+			
+			System.out.println("使用病种ID " + diseaseId + " 下 " + caseIndexes.size() + " 个病案的平均主题分布");
+		} else {
+			// 如果没有找到相关病案，回退到使用单个病案的分布
+			for (int k = 0; k < ldaModel.getTopicAmount(); k++) {
+				interestProbs[k] = ldaModel.getTheta()[diseaseIndex][k];
+			}
+			System.out.println("回退到使用单个病案的主题分布");
 		}
 
 		// 对兴趣主题按概率排序
@@ -286,9 +313,13 @@ public class IndexUtil {
 		// 为每个top interest推荐一个最相关的Supply
 		Set<Integer> selectedSupplys = new HashSet<>(); // 避免重复推荐同一个Supply
 
-		// 限制循环次数以提高性能
-		int actualInterestCount = Math.min(interestCount, ldaModel.getTopicAmount());
+		// 限制循环次数以提高性能，但取消最大数量限制
+		int actualInterestCount = interestCount; // 不再与ldaModel.getTopicAmount()取最小值
 		for (int i = 0; i < actualInterestCount; i++) {
+			if (i >= interestIndices.size()) {
+				break; // 防止索引越界
+			}
+			
 			int interestId = interestIndices.get(i);
 
 			// 在该兴趣主题中找出最相关的Supply

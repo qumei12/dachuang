@@ -1,8 +1,8 @@
 #LDA Model Configuration
-#Mon Sep 29 03:28:44 CST 2025
-topicAmount=30
+#Mon Oct 06 23:00:05 CST 2025
+topicAmount=50
 supplyAmount=984
-iterations=200
+iterations=5000
 caseAmount=1033
-beta=1.0
+beta=0.01
 alpha=0.1

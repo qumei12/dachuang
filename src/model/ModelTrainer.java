@@ -252,9 +252,9 @@ public class ModelTrainer {
         int progressInterval = Math.max(1, totalIterations / 100); // 至少每1%显示一次进度
         
         // 收敛检测参数
-        double phiConvergenceThreshold = 5e-4;  // Phi矩阵收敛阈值
-        double thetaConvergenceThreshold = 5e-3; // Theta矩阵收敛阈值
-        int maxIterationsWithoutImprovement = 5; // 最大无改善迭代次数（由于迭代次数减少到100，这里也相应减小）
+        double phiConvergenceThreshold = 1e-4;   // Phi矩阵收敛阈值，更严格的收敛条件
+        double thetaConvergenceThreshold = 1e-3; // Theta矩阵收敛阈值
+        int maxIterationsWithoutImprovement = 10; // 最大无改善迭代次数
         int iterationsWithoutImprovement = 0;
         
         System.out.println("开始训练，总共 " + totalIterations + " 次迭代");
@@ -276,13 +276,13 @@ public class ModelTrainer {
         double minPhiChange = Double.MAX_VALUE;
         double minThetaChange = Double.MAX_VALUE;
         int minChangeNotImprovedCount = 0;
-        int maxMinChangeNotImprovedCount = 3; // 最小变化量连续无改善次数阈值（由于迭代次数减少到100，这里也相应减小）
+        int maxMinChangeNotImprovedCount = 5; // 最小变化量连续无改善次数阈值
         
         for (int i = 0; i < totalIterations; i++) {
             // 使用Gibbs采样更新主题分配
             for (int m = 0; m < model.caseAmount; m++) {
-                int N = model.CasesSupplies[m].length;
-                for (int n = 0; n < N; n++) {
+                // 正确遍历z矩阵，而不是CasesSupplies矩阵
+                for (int n = 0; n < model.z[m].length; n++) {
                     int newTopic = model.sampleTopicZ(m, n);
                     model.z[m][n] = newTopic;
                 }
