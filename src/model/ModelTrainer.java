@@ -207,7 +207,8 @@ public class ModelTrainer {
         System.out.println(); // 换行，避免进度条影响后续输出
         
         // 输出最终收敛统计
-        printFinalConvergenceStats(phiChangeHistory, thetaChangeHistory);
+        printFinalConvergenceStats(phiChangeHistory, thetaChangeHistory, totalIterations);
+
     }
     
     /**
@@ -253,23 +254,25 @@ public class ModelTrainer {
      * 打印最终收敛统计信息
      * @param phiChangeHistory Phi变化量历史
      * @param thetaChangeHistory Theta变化量历史
+     * @param totalIterations 总迭代次数
      */
-    private static void printFinalConvergenceStats(List<Double> phiChangeHistory, List<Double> thetaChangeHistory) {
+    private static void printFinalConvergenceStats(List<Double> phiChangeHistory, List<Double> thetaChangeHistory, int totalIterations) {
         if (phiChangeHistory.isEmpty()) return;
         
         System.out.println("\n=== 最终收敛统计 ===");
-        System.out.println("总迭代次数: " + phiChangeHistory.size());
+        System.out.println("总迭代次数: " + totalIterations);
+        System.out.println("收敛检测次数: " + phiChangeHistory.size());
         
         if (phiChangeHistory.size() >= 10) {
             double recentAvgPhi = calculateAverage(phiChangeHistory, 10);
             double recentAvgTheta = calculateAverage(thetaChangeHistory, 10);
-            System.out.printf("最近10次迭代平均变化量 - Phi: %.8f, Theta: %.8f%n", recentAvgPhi, recentAvgTheta);
+            System.out.printf("最近10次收敛检测平均变化量 - Phi: %.8f, Theta: %.8f%n", recentAvgPhi, recentAvgTheta);
         }
         
         if (phiChangeHistory.size() >= 50) {
             double recentAvgPhi = calculateAverage(phiChangeHistory, 50);
             double recentAvgTheta = calculateAverage(thetaChangeHistory, 50);
-            System.out.printf("最近50次迭代平均变化量 - Phi: %.8f, Theta: %.8f%n", recentAvgPhi, recentAvgTheta);
+            System.out.printf("最近50次收敛检测平均变化量 - Phi: %.8f, Theta: %.8f%n", recentAvgPhi, recentAvgTheta);
         }
         
         double overallAvgPhi = phiChangeHistory.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);

@@ -34,8 +34,8 @@ public class LDAModel {
 
 
 	public LDAModel() {
-		topicAmount = 50;              // 主题数量
-		alpha =0.8;             	   // Dirichlet参数
+		topicAmount = 70;              // 主题数量
+		alpha =1;             	   // Dirichlet参数
 		beta = 0.001;                   // Dirichlet参数，较小的值有助于稀疏化
 
 		iterations = 10000;              // 迭代次数

@@ -237,6 +237,7 @@ public class Search extends HttpServlet {
 		
 		// 如果没有找到相关数据
 		if (caseIdToAmount.isEmpty()) {
+			System.out.println("警告：未找到DRG编码 " + drgCode + " 的任何病案数据");
 			return -1;
 		}
 		
@@ -244,7 +245,25 @@ public class Search extends HttpServlet {
 		List<Double> drgDetailAmounts = new ArrayList<>(caseIdToAmount.values());
 		Collections.sort(drgDetailAmounts);
 		
-		// 计算排名
+		System.out.println("DRG编码 " + drgCode + " 的病案金额统计:");
+		System.out.println("  最小金额: " + Collections.min(drgDetailAmounts));
+		System.out.println("  最大金额: " + Collections.max(drgDetailAmounts));
+		System.out.println("  病案总数: " + drgDetailAmounts.size());
+		System.out.println("  目标金额: " + targetAmount);
+		
+		// 特殊情况处理：如果目标金额小于等于最小值，则排名应该是0%
+		if (targetAmount <= Collections.min(drgDetailAmounts)) {
+			System.out.println("目标金额小于等于最小值，返回0%");
+			return 0.0;
+		}
+		
+		// 特殊情况处理：如果目标金额大于等于最大值，则排名应该是100%
+		if (targetAmount >= Collections.max(drgDetailAmounts)) {
+			System.out.println("目标金额大于等于最大值，返回100%");
+			return 100.0;
+		}
+		
+		// 计算排名 - 找到第一个大于目标金额的位置
 		int rank = 0;
 		for (int i = 0; i < drgDetailAmounts.size(); i++) {
 			if (drgDetailAmounts.get(i) <= targetAmount) {
@@ -254,8 +273,12 @@ public class Search extends HttpServlet {
 			}
 		}
 		
-		// 计算百分比
-		double percentile = (double) rank / drgDetailAmounts.size() * 100;
+		System.out.println("  排名位置: " + rank);
+		
+		// 计算百分比，使用线性插值方法使结果更精确
+		double percentile = (double) rank / (drgDetailAmounts.size() - 1) * 100;
+		
+		System.out.println("  计算得出的百分比: " + percentile + "%");
 		
 		return percentile;
 	}
@@ -576,6 +599,7 @@ public class Search extends HttpServlet {
 			
 			// 计算总价
 			double totalAmount = 0.0;
+			System.out.println("开始计算总价:");
 			for (Supply supply : limitedSupplyList) {
 				double unitPrice = 0.0;
 				int averageQuantity = 0;
@@ -595,8 +619,11 @@ public class Search extends HttpServlet {
 					}
 				}
 				
-				totalAmount += unitPrice * averageQuantity;
+				double subtotal = unitPrice * averageQuantity;
+				totalAmount += subtotal;
+				System.out.println("  耗材ID: " + supply.getID() + ", 单价: " + unitPrice + ", 数量: " + averageQuantity + ", 小计: " + subtotal);
 			}
+			System.out.println("总价计算完成: " + totalAmount);
 			
 			// 计算总价在DRG明细总金额中的排名百分比
 			double amountRankPercentile = calculateAmountRankPercentile(disease.getNAME(), totalAmount);
