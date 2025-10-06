@@ -389,23 +389,21 @@ public class nextSearch extends HttpServlet {
 			arr[i] = nextSearch.ldaModel.getTheta()[index][i];
 		}
 		
-		// 按照概率从高到低排序
-		for(int i = 0; i < arr.length - 1; i++){
-			for(int j = 0; j < arr.length - 1 - i; j++){
-				if(arr[j] < arr[j + 1]){
-					double temp1 = arr[j];
-					arr[j] = arr[j + 1];
-					arr[j + 1] = temp1;
-					
-					int temp2 = arr_index[j];
-					arr_index[j] = arr_index[j + 1];
-					arr_index[j + 1] = temp2;
-				}
-			}
+		// 使用更高效的排序方法
+		List<Integer> indices = new ArrayList<>();
+		for (int i = 0; i < arr.length; i++) {
+			indices.add(i);
 		}
 		
-		for(int i = 0; i < Math.min(top, arr_index.length); i++){
-			recom[i] = arr_index[i];
+		// 按照概率从高到低排序
+		indices.sort((o1, o2) -> {
+			if (arr[o1] > arr[o2]) return -1;
+			else if (arr[o1] < arr[o2]) return 1;
+			else return 0;
+		});
+		
+		for(int i = 0; i < Math.min(top, indices.size()); i++){
+			recom[i] = arr_index[indices.get(i)];
 		}
 		
 		return recom;
@@ -428,23 +426,21 @@ public class nextSearch extends HttpServlet {
 			arr[i] = nextSearch.ldaModel.getPhi()[index][i];
 		}
 		
-		// 按照概率从高到低排序
-		for(int i = 0; i < arr.length - 1; i++){
-			for(int j = 0; j < arr.length - 1 - i; j++){
-				if(arr[j] < arr[j + 1]){
-					double temp1 = arr[j];
-					arr[j] = arr[j + 1];
-					arr[j + 1] = temp1;
-					
-					int temp2 = arr_index[j];
-					arr_index[j] = arr_index[j + 1];
-					arr_index[j + 1] = temp2;
-				}
-			}
+		// 使用更高效的排序方法
+		List<Integer> indices = new ArrayList<>();
+		for (int i = 0; i < arr.length; i++) {
+			indices.add(i);
 		}
 		
-		for(int i = 0; i < Math.min(top, arr_index.length); i++){
-			recom[i] = arr_index[i];
+		// 按照概率从高到低排序
+		indices.sort((o1, o2) -> {
+			if (arr[o1] > arr[o2]) return -1;
+			else if (arr[o1] < arr[o2]) return 1;
+			else return 0;
+		});
+		
+		for(int i = 0; i < Math.min(top, indices.size()); i++){
+			recom[i] = arr_index[indices.get(i)];
 		}
 		
 		return recom;

@@ -35,12 +35,12 @@ public class LDAModel {
 
 	public LDAModel() {
 		topicAmount = 50;              // 主题数量
-		alpha =0.5;             	   // Dirichlet参数
-		beta = 0.01;                   // Dirichlet参数，较小的值有助于稀疏化
+		alpha =0.8;             	   // Dirichlet参数
+		beta = 0.005;                   // Dirichlet参数，较小的值有助于稀疏化
 
-		iterations = 5000;              // 迭代次数
-		saveStep = 10;                 // 保存步长
-		beginSaveIters = 4500;          // 开始保存迭代次数，给模型更多时间收敛
+		iterations = 10000;              // 迭代次数
+		saveStep = 100;                 // 保存步长
+		beginSaveIters = 9500;          // 开始保存迭代次数，给模型更多时间收敛
 	}
 
 	public void initializeLDAModel() {

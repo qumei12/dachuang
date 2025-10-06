@@ -277,23 +277,21 @@ public class Search extends HttpServlet {
 			arr[i] = ldaModel.getTheta()[index][i];
 		}
 		
-		// 按照概率从高到低排序
-		for(int i = 0; i < arr.length - 1; i++){
-			for(int j = 0; j < arr.length - 1 - i; j++){
-				if(arr[j] < arr[j + 1]){
-					double temp1 = arr[j];
-					arr[j] = arr[j + 1];
-					arr[j + 1] = temp1;
-					
-					int temp2 = arr_index[j];
-					arr_index[j] = arr_index[j + 1];
-					arr_index[j + 1] = temp2;
-				}
-			}
+		// 使用更高效的排序方法
+		List<Integer> indices = new ArrayList<>();
+		for (int i = 0; i < arr.length; i++) {
+			indices.add(i);
 		}
 		
-		for(int i = 0; i < Math.min(top, arr_index.length); i++){
-			recom[i] = arr_index[i];
+		// 按照概率从高到低排序
+		indices.sort((o1, o2) -> {
+			if (arr[o1] > arr[o2]) return -1;
+			else if (arr[o1] < arr[o2]) return 1;
+			else return 0;
+		});
+		
+		for(int i = 0; i < Math.min(top, indices.size()); i++){
+			recom[i] = arr_index[indices.get(i)];
 		}
 		
 		return recom;
@@ -316,23 +314,21 @@ public class Search extends HttpServlet {
 			arr[i] = ldaModel.getPhi()[index][i];
 		}
 		
-		// 按照概率从高到低排序
-		for(int i = 0; i < arr.length - 1; i++){
-			for(int j = 0; j < arr.length - 1 - i; j++){
-				if(arr[j] < arr[j + 1]){
-					double temp1 = arr[j];
-					arr[j] = arr[j + 1];
-					arr[j + 1] = temp1;
-					
-					int temp2 = arr_index[j];
-					arr_index[j] = arr_index[j + 1];
-					arr_index[j + 1] = temp2;
-				}
-			}
+		// 使用更高效的排序方法
+		List<Integer> indices = new ArrayList<>();
+		for (int i = 0; i < arr.length; i++) {
+			indices.add(i);
 		}
 		
-		for(int i = 0; i < Math.min(top, arr_index.length); i++){
-			recom[i] = arr_index[i];
+		// 按照概率从高到低排序
+		indices.sort((o1, o2) -> {
+			if (arr[o1] > arr[o2]) return -1;
+			else if (arr[o1] < arr[o2]) return 1;
+			else return 0;
+		});
+		
+		for(int i = 0; i < Math.min(top, indices.size()); i++){
+			recom[i] = arr_index[indices.get(i)];
 		}
 		
 		return recom;
@@ -353,29 +349,7 @@ public class Search extends HttpServlet {
 	 * @return 推荐的耗材索引列表，如果未找到预计算结果则返回null
 	 */
 	private List<Integer> loadPrecomputedSupplies(String diseaseName) {
-		try {
-			// 文件名不能包含特殊字符，需要进行处理
-			String fileName = diseaseName.replaceAll("[<>:\"/\\\\|?*]", "_");
-			String filePath = "models/precomputed/" + fileName + ".dat";
-			
-			File file = new File(filePath);
-			if (!file.exists()) {
-				return null;
-			}
-			
-			try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-				@SuppressWarnings("unchecked")
-				List<Integer> recommendedSupplies = (List<Integer>) ois.readObject();
-				return recommendedSupplies;
-			}
-		} catch (FileNotFoundException e) {
-			// 预计算文件不存在，返回null
-			return null;
-		} catch (Exception e) {
-			System.err.println("加载病种 " + diseaseName + " 的预计算结果时出错: " + e.getMessage());
-			e.printStackTrace();
-			return null;
-		}
+		return null; // 预计算机制已移除，始终返回null以使用实时计算
 	}
 	
 	/**
@@ -964,19 +938,30 @@ public class Search extends HttpServlet {
 			else return 0;
 		});
 
+		// 输出前10个主题及其概率，便于调试
+		System.out.println("病种 \"" + diseaseName + "\" 的前10个兴趣主题（用于计算dynamicTopK）:");
+		for (int i = 0; i < Math.min(10, sortedIndices.size()); i++) {
+			int topicIndex = sortedIndices.get(i);
+			System.out.println("  主题 " + topicIndex + " - 概率: " + String.format("%.6f", interestProbs[topicIndex]));
+		}
+
 		// 计算累积概率，找到覆盖90%以上概率分布所需的主题数
 		double cumulativeProb = 0.0;
 		int dynamicTopK = 3; // 至少推荐3个主题
 		for (int i = 0; i < sortedIndices.size(); i++) {
 			cumulativeProb += interestProbs[sortedIndices.get(i)];
+			System.out.println("  累积处理主题 " + sortedIndices.get(i) + "，当前累积概率: " + String.format("%.6f", cumulativeProb) + 
+				" (" + String.format("%.2f", cumulativeProb / totalProb * 100) + "%)");
 			if (cumulativeProb >= 0.90 * totalProb) {
 				dynamicTopK = i + 1;
+				System.out.println("  达到90%阈值，dynamicTopK设置为: " + dynamicTopK);
 				break;
 			}
 		}
 
 		// 限制推荐主题数量的下限（最少3个），但取消上限限制
 		dynamicTopK = Math.max(3, dynamicTopK);
+		System.out.println("最终确定的dynamicTopK值: " + dynamicTopK);
 
 		return dynamicTopK;
 	}
