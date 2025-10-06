@@ -513,20 +513,24 @@ public class DBSearch {
 	    try {
 	        statement = connection.createStatement();
 	        
-	        // 查询指定病种中使用指定耗材的所有记录，并计算平均数量
-	        // 优化SQL查询，使用更高效的JOIN方式
-	        String sql = "SELECT AVG(s.C_QUANTITY) as avg_quantity FROM tb_supply s " +
+	        // 查询指定病种中使用指定耗材的病案数量和总使用量
+	        // 根据规范，只统计使用了该耗材的病案（C_QUANTITY > 0）
+	        String sql = "SELECT COUNT(*) as case_count, SUM(s.C_QUANTITY) as total_quantity FROM tb_supply s " +
 	                    "INNER JOIN tb_case c ON s.N_CASE_ID = c.N_ID " +
 	                    "WHERE c.N_MASHUP_ID = " + diseaseId + " " +
-	                    "AND s.C_NAME = (SELECT C_NAME FROM tb_supply WHERE N_ID = " + supplyId + " LIMIT 1)";
+	                    "AND s.C_NAME = (SELECT C_NAME FROM tb_supply WHERE N_ID = " + supplyId + " LIMIT 1) " +
+	                    "AND s.C_QUANTITY > 0";
 	        
 	        ResultSet rs = statement.executeQuery(sql);
 	        
 	        if (rs.next()) {
-	            double avg = rs.getDouble("avg_quantity");
+	            int caseCount = rs.getInt("case_count");
+	            int totalQuantity = rs.getInt("total_quantity");
+	            
 	            // 处理NULL值情况
-	            if (!rs.wasNull()) {
-	                // 取整
+	            if (!rs.wasNull() && caseCount > 0) {
+	                // 计算平均使用数量并取整
+	                double avg = (double) totalQuantity / caseCount;
 	                averageQuantity = (int) Math.round(avg);
 	            }
 	        }

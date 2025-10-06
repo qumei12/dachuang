@@ -952,9 +952,9 @@ public class Search extends HttpServlet {
 			cumulativeProb += interestProbs[sortedIndices.get(i)];
 			System.out.println("  累积处理主题 " + sortedIndices.get(i) + "，当前累积概率: " + String.format("%.6f", cumulativeProb) + 
 				" (" + String.format("%.2f", cumulativeProb / totalProb * 100) + "%)");
-			if (cumulativeProb >= 0.90 * totalProb) {
+			if (cumulativeProb >= 0.95 * totalProb) {
 				dynamicTopK = i + 1;
-				System.out.println("  达到90%阈值，dynamicTopK设置为: " + dynamicTopK);
+				System.out.println("  达到95%阈值，dynamicTopK设置为: " + dynamicTopK);
 				break;
 			}
 		}
