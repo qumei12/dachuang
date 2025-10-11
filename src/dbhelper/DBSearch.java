@@ -77,12 +77,22 @@ public class DBSearch {
 
 			while (rs.next()) {
 				Supply supply = new Supply();
-				supply.setID(rs.getInt(1));
-				supply.setNAME(rs.getString(4));
-				supply.setDESCRIPTION(rs.getString(5));
-				supply.setURL(rs.getString(6));
-				supply.setDISEASE_ID(rs.getInt(2));
-				supply.setSUPPLY_ID(rs.getInt(3));
+				// 正确映射字段，根据数据库表结构:
+				// N_ID INT PRIMARY KEY - 耗材ID
+				// N_CASE_ID INT NOT NULL - 关联的病例ID
+				// C_NAME VARCHAR(255) NOT NULL - 耗材名称
+				// C_PRODUCT_NAME VARCHAR(255) - 产品名称
+				// C_SPECIFICATION VARCHAR(100) - 规格
+				// C_PRICE DECIMAL(10,2) - 单价
+				// C_QUANTITY INT - 数量
+				
+				supply.setID(rs.getInt("N_ID"));                    // 耗材ID
+				supply.setNAME(rs.getString("C_NAME"));             // 耗材名称
+				supply.setPRODUCT_NAME(rs.getString("C_PRODUCT_NAME")); // 产品名称
+				supply.setDESCRIPTION(rs.getString("C_SPECIFICATION")); // 规格作为描述
+				supply.setPRICE(rs.getString("C_PRICE"));           // 价格
+				// 注意：DISEASE_ID和SUPPLY_ID在当前上下文中没有直接对应字段
+				// N_CASE_ID是关联病例ID，不是病种ID
 
 				list.add(supply);
 			}
@@ -150,12 +160,22 @@ public class DBSearch {
 			ResultSet rs = statement.executeQuery(sql);
 
 			while (rs.next()) {
-				supply.setID(rs.getInt(1));                           // N_ID - 耗材ID
-				supply.setNAME(rs.getString(3));                      // C_NAME - 耗材名称
-				supply.setDESCRIPTION(rs.getString(6));               // C_PRICE - 价格
-				supply.setURL(rs.getString(5));                       // C_SPECIFICATION - 规格
-				supply.setPRODUCT_NAME(rs.getString(4));              // C_PRODUCT_NAME - 产品名称
-				supply.setPRICE(rs.getString(6));                     // C_PRICE - 价格
+				// 正确映射字段，根据数据库表结构:
+				// N_ID INT PRIMARY KEY - 耗材ID
+				// N_CASE_ID INT NOT NULL - 关联的病例ID
+				// C_NAME VARCHAR(255) NOT NULL - 耗材名称
+				// C_PRODUCT_NAME VARCHAR(255) - 产品名称
+				// C_SPECIFICATION VARCHAR(100) - 规格
+				// C_PRICE DECIMAL(10,2) - 单价
+				// C_QUANTITY INT - 数量
+				
+				supply.setID(rs.getInt("N_ID"));                           // 耗材ID
+				supply.setNAME(rs.getString("C_NAME"));                    // 耗材名称
+				supply.setPRODUCT_NAME(rs.getString("C_PRODUCT_NAME"));    // 产品名称
+				supply.setDESCRIPTION(rs.getString("C_SPECIFICATION"));    // 规格作为描述
+				supply.setPRICE(rs.getString("C_PRICE"));                  // 价格
+				// URL字段在数据库中对应C_SPECIFICATION（规格）
+				supply.setURL(rs.getString("C_SPECIFICATION"));            // 规格
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
