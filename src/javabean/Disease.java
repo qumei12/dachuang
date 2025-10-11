@@ -14,15 +14,6 @@ public class Disease {
 		// TODO Auto-generated constructor stub
 	}
 
-	public Disease(int id, String name, String description, String url,
-			Date date) {
-		super();
-		ID = id;
-		NAME = name;
-		DESCRIPTION = description;
-		URL = url;
-		DATE = date;
-	}
 
 	public int getID() {
 		return ID;
@@ -48,21 +39,6 @@ public class Disease {
 		DESCRIPTION = description;
 	}
 
-	public String getURL() {
-		return URL;
-	}
-
-	public void setURL(String url) {
-		URL = url;
-	}
-
-	public Date getDATE() {
-		return DATE;
-	}
-
-	public void setDATE(Date date) {
-		DATE = date;
-	}
 
 	@Override
 	public int hashCode() {

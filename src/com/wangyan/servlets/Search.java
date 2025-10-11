@@ -259,120 +259,8 @@ public class Search extends HttpServlet {
 		
 		return percentile;
 	}
-	
-	/**
-	 * 获取病种的TopK兴趣主题
-	 * @param index 病种索引
-	 * @param top TopK数量
-	 * @return 兴趣主题索引数组
-	 */
-	private int[] getTopInterest(int index, int top){
-		int[] recom = new int[top];
-		
-		Double[] arr = new Double[ldaModel.getTheta()[index].length];
-		int[] arr_index = new int[ldaModel.getTheta()[index].length];
-		
-		for(int i = 0; i < ldaModel.getTheta()[index].length; i++){
-			arr_index[i] = i;
-			arr[i] = ldaModel.getTheta()[index][i];
-		}
-		
-		// 使用更高效的排序方法
-		List<Integer> indices = new ArrayList<>();
-		for (int i = 0; i < arr.length; i++) {
-			indices.add(i);
-		}
-		
-		// 按照概率从高到低排序
-		indices.sort((o1, o2) -> {
-			if (arr[o1] > arr[o2]) return -1;
-			else if (arr[o1] < arr[o2]) return 1;
-			else return 0;
-		});
-		
-		for(int i = 0; i < Math.min(top, indices.size()); i++){
-			recom[i] = arr_index[indices.get(i)];
-		}
-		
-		return recom;
-	}
-	
-	/**
-	 * 获取兴趣主题下的TopK耗材
-	 * @param index 兴趣主题索引
-	 * @param top TopK数量
-	 * @return 耗材索引数组
-	 */
-	private int[] getTopSupply(int index, int top){
-		int[] recom = new int[top];
-		
-		double[] arr = new double[ldaModel.getPhi()[index].length];
-		int[] arr_index = new int[ldaModel.getPhi()[index].length];
-		
-		for(int i = 0; i < ldaModel.getPhi()[index].length; i++){
-			arr_index[i] = i;
-			arr[i] = ldaModel.getPhi()[index][i];
-		}
-		
-		// 使用更高效的排序方法
-		List<Integer> indices = new ArrayList<>();
-		for (int i = 0; i < arr.length; i++) {
-			indices.add(i);
-		}
-		
-		// 按照概率从高到低排序
-		indices.sort((o1, o2) -> {
-			if (arr[o1] > arr[o2]) return -1;
-			else if (arr[o1] < arr[o2]) return 1;
-			else return 0;
-		});
-		
-		for(int i = 0; i < Math.min(top, indices.size()); i++){
-			recom[i] = arr_index[indices.get(i)];
-		}
-		
-		return recom;
-	}
-	
-	/**
-	 * 预加载所有病种的搜索结果
-	 */
-	public static void preloadAllSearchResults() {
-		// 这个方法可以用于预加载所有可能的搜索结果
-		// 在实际应用中，可以根据需要预加载热门病种的搜索结果
-		System.out.println("预加载搜索结果功能已实现，可根据需要调用");
-	}
-	
-	/**
-	 * 尝试从预计算结果中加载推荐的耗材
-	 * @param diseaseName 病种名称
-	 * @return 推荐的耗材索引列表，如果未找到预计算结果则返回null
-	 */
-	private List<Integer> loadPrecomputedSupplies(String diseaseName) {
-		return null; // 预计算机制已移除，始终返回null以使用实时计算
-	}
-	
-	/**
-	 * 根据预计算的耗材索引列表获取实际的Supply对象列表
-	 * @param supplyIndices 耗材索引列表
-	 * @return Supply对象列表
-	 */
-	private List<Supply> getSuppliesFromIndices(List<Integer> supplyIndices) {
-		List<Supply> supplies = new ArrayList<>();
-		DBSearch dbs = new DBSearch();
-		
-		for (Integer supplyIndex : supplyIndices) {
-			if (supplyIndex_ID.containsKey(supplyIndex)) {
-				int supplyId = supplyIndex_ID.get(supplyIndex);
-				Supply supply = dbs.getSupplyById(supplyId);
-				if (supply != null) {
-					supplies.add(supply);
-				}
-			}
-		}
-		
-		return supplies;
-	}
+
+
 	
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String diseaseName = request.getParameter("search");
@@ -397,7 +285,7 @@ public class Search extends HttpServlet {
 
 			// 首先验证病种是否存在（精确匹配）
 			DBSearch dbs = new DBSearch();
-			Disease disease = dbs.getMashupByName(diseaseName);
+			Disease disease = dbs.getDiseaseByName(diseaseName);
 			
 			if (disease == null) {
 				// 如果精确匹配失败，尝试模糊搜索
@@ -681,7 +569,7 @@ public class Search extends HttpServlet {
 			
 			// 首先尝试精确匹配
 			DBSearch dbs = new DBSearch();
-			Disease disease = dbs.getMashupByName(diseaseName);
+			Disease disease = dbs.getDiseaseByName(diseaseName);
 			
 			if (disease != null && disease.getID() != -1) {
 				// 精确匹配成功，重定向到 doGet 方法处理
@@ -884,7 +772,7 @@ public class Search extends HttpServlet {
 
 		// 获取该病种下所有病案的索引
 		DBSearch dbs = new DBSearch();
-		Disease disease = dbs.getMashupByName(diseaseName);
+		Disease disease = dbs.getDiseaseByName(diseaseName);
 		if (disease == null) {
 			return 10;
 		}
@@ -964,6 +852,39 @@ public class Search extends HttpServlet {
 		System.out.println("最终确定的dynamicTopK值: " + dynamicTopK);
 
 		return dynamicTopK;
+	}
+	
+	/**
+	 * 从预计算结果中加载推荐耗材
+	 * @param diseaseName 病种名称
+	 * @return 耗材索引列表，如果未找到预计算结果则返回null
+	 */
+	private List<Integer> loadPrecomputedSupplies(String diseaseName) {
+		// 当前实现返回null，表示没有预计算结果，将使用实时计算
+		return null;
+	}
+	
+	/**
+	 * 根据索引列表获取耗材对象列表
+	 * @param supplyIndices 耗材索引列表
+	 * @return 耗材对象列表
+	 */
+	private List<Supply> getSuppliesFromIndices(List<Integer> supplyIndices) {
+		List<Supply> supplies = new ArrayList<>();
+		if (supplyIndices != null) {
+			DBSearch dbs = new DBSearch();
+			for (Integer index : supplyIndices) {
+				// 通过supplyIndex_ID映射获取实际的耗材ID
+				Integer supplyId = supplyIndex_ID.get(index);
+				if (supplyId != null) {
+					Supply supply = dbs.getSupplyById(supplyId);
+					if (supply != null) {
+						supplies.add(supply);
+					}
+				}
+			}
+		}
+		return supplies;
 	}
 	
 	/**

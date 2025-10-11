@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import dbhelper.DBSearch;
+import javabean.Disease;
 import javabean.DiseaseJson;
 
 /**
@@ -37,7 +38,18 @@ public class DiseaseTable extends HttpServlet {
 		int startId = (page - 1) * 20;
 		int count = 20;
 		DBSearch dbs = new DBSearch();
-		ArrayList<DiseaseJson> mashupList = dbs.getMashupTable(startId, count);
+		ArrayList<Disease> diseaseList = dbs.getMashupTable(startId, count);
+		
+		// 将Disease对象转换为DiseaseJson对象
+		ArrayList<DiseaseJson> mashupList = new ArrayList<DiseaseJson>();
+		for (Disease disease : diseaseList) {
+			DiseaseJson diseaseJson = new DiseaseJson();
+			diseaseJson.setN_ID(disease.getID());
+			diseaseJson.setC_NAME(disease.getNAME());
+			diseaseJson.setC_DESCRIPTION(disease.getDESCRIPTION());
+			mashupList.add(diseaseJson);
+		}
+		
 		int pageAmount = dbs.getPageAmount();
 		request.setAttribute("mashupList", mashupList);
 		request.setAttribute("pageAmount", pageAmount);
@@ -50,6 +62,7 @@ public class DiseaseTable extends HttpServlet {
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
+		doGet(request, response);
 	}
 
 }

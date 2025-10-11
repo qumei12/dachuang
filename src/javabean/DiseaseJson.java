@@ -12,14 +12,6 @@ public class DiseaseJson {
 		// TODO Auto-generated constructor stub
 	}
 
-	public DiseaseJson(int n_ID, String c_NAME, String c_DESCRIPTION, String c_URL, String c_DATE) {
-		super();
-		N_ID = n_ID;
-		C_NAME = c_NAME;
-		C_DESCRIPTION = c_DESCRIPTION;
-		C_URL = c_URL;
-		C_DATE = c_DATE;
-	}
 
 	@Override
 	public String toString() {
@@ -73,44 +65,16 @@ public class DiseaseJson {
 		return true;
 	}
 
-	public int getN_ID() {
-		return N_ID;
-	}
 
 	public void setN_ID(int n_ID) {
 		N_ID = n_ID;
 	}
-
-	public String getC_NAME() {
-		return C_NAME;
-	}
-
 	public void setC_NAME(String c_NAME) {
 		C_NAME = c_NAME;
 	}
-
-	public String getC_DESCRIPTION() {
-		return C_DESCRIPTION;
-	}
-
 	public void setC_DESCRIPTION(String c_DESCRIPTION) {
 		C_DESCRIPTION = c_DESCRIPTION;
 	}
 
-	public String getC_URL() {
-		return C_URL;
-	}
-
-	public void setC_URL(String c_URL) {
-		C_URL = c_URL;
-	}
-
-	public String getC_DATE() {
-		return C_DATE;
-	}
-
-	public void setC_DATE(String c_DATE) {
-		C_DATE = c_DATE;
-	}
 
 }

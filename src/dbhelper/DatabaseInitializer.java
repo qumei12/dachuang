@@ -112,52 +112,7 @@ public class DatabaseInitializer {
             }
         }
     }
-    
-    /**
-     * 清空所有表数据
-     */
-    public static void clearAllData() {
-        System.out.println("开始清空所有表数据...");
-        Connection connection = null;
-        Statement statement = null;
-        
-        try {
-            // 加载数据库驱动
-            Class.forName(dbClassName);
-            
-            // 建立连接
-            String url = "jdbc:mysql://localhost:3306/db_mashup?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
-            connection = DriverManager.getConnection(url, dbUser, dbPassword);
-            statement = connection.createStatement();
-            
-            // 清空表数据
-            statement.executeUpdate("DELETE FROM tb_supply");
-            System.out.println("耗材表数据已清空");
-            
-            statement.executeUpdate("DELETE FROM tb_case");
-            System.out.println("病例表数据已清空");
-            
-            statement.executeUpdate("DELETE FROM tb_disease");
-            System.out.println("病种表数据已清空");
-            
-        } catch (Exception e) {
-            System.err.println("清空表数据时发生错误: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            // 关闭资源
-            try {
-                if (statement != null) {
-                    statement.close();
-                }
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-    
+
     /**
      * 主方法，用于测试数据库初始化
      */

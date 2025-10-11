@@ -41,9 +41,6 @@ public class Supply {
 		NAME = name;
 	}
 
-	public String getDESCRIPTION() {
-		return DESCRIPTION;
-	}
 
 	public void setDESCRIPTION(String description) {
 		DESCRIPTION = description;
@@ -57,17 +54,11 @@ public class Supply {
 		URL = url;
 	}
 
-	public int getDISEASE_ID() {
-		return DISEASE_ID;
-	}
 
 	public void setDISEASE_ID(int diseaseId) {
 		DISEASE_ID = diseaseId;
 	}
 
-	public int getSUPPLY_ID() {
-		return SUPPLY_ID;
-	}
 
 	public void setSUPPLY_ID(int supplyId) {
 		SUPPLY_ID = supplyId;

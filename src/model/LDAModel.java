@@ -43,6 +43,7 @@ public class LDAModel {
 		beginSaveIters = 9500;          // 开始保存迭代次数，给模型更多时间收敛
 	}
 
+
 	public void initializeLDAModel() {
 		CasesSupplies = CaseSupplyMatrixService.getCaseSupplyMatrix();  // 获取病案-耗材矩阵
 		caseAmount = CasesSupplies.length;
