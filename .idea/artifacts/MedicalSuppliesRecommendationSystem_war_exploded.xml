@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
-  <artifact type="exploded-war" name="UserServiceRcommandWebServer:war exploded">
-    <output-path>$PROJECT_DIR$/classes/artifacts/UserServiceRcommandWebServer_war_exploded</output-path>
+  <artifact type="exploded-war" name="MedicalSuppliesRecommendationSystem:war exploded">
+    <output-path>$PROJECT_DIR$/classes/artifacts/MedicalSuppliesRecommendationSystem_war_exploded</output-path>
     <root id="root">
       <element id="directory" name="WEB-INF">
         <element id="directory" name="classes">
@@ -10,7 +10,7 @@
           <element id="library" level="module" name="junit4" module-name="MedicalSuppliesRecommendationSystem" />
         </element>
       </element>
-      <element id="javaee-facet-resources" facet="UserServiceRcommandWebServer/web/Web" />
+      <element id="javaee-facet-resources" facet="MedicalSuppliesRecommendationSystem/web/Web" />
     </root>
   </artifact>
 </component>

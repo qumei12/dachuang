@@ -7,6 +7,6 @@
 <title>搜索失败</title>
 </head>
 <body>
-	未检索到！请返回检索起始页面！
+	未检索到！请返回<a href="<%=request.getContextPath()%>/index.jsp">检索起始页面</a>！
 </body>
 </html>

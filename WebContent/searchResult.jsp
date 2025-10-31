@@ -313,7 +313,7 @@
 	<% } %>
 
 	<div class="back-link">
-		<a href="index.jsp">返回首页</a>
+		<a href="<%=request.getContextPath()%>/index.jsp">返回首页</a>
 	</div>
 </div>
 </body>

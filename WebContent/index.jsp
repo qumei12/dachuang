@@ -69,7 +69,7 @@ p, p>a {
         <h1>耗材推荐系统</h1>
     	</div>
    		<div class="search">
-        <form action="./Search" method="post">
+        <form action="<%=request.getContextPath()%>/Search" method="post">
             <label for="search"></label>
             <input class="input" type="text" name="search" id="search" value="" /><input class="btn" type="submit" value="搜索" name="submit" />
         </form>
