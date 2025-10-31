@@ -4,10 +4,10 @@
     <root id="root">
       <element id="directory" name="WEB-INF">
         <element id="directory" name="classes">
-          <element id="module-output" name="UserServiceRcommandWebServer" />
+          <element id="module-output" name="MedicalSuppliesRecommendationSystem" />
         </element>
         <element id="directory" name="lib">
-          <element id="library" level="module" name="junit4" module-name="UserServiceRcommandWebServer" />
+          <element id="library" level="module" name="junit4" module-name="MedicalSuppliesRecommendationSystem" />
         </element>
       </element>
       <element id="javaee-facet-resources" facet="UserServiceRcommandWebServer/web/Web" />

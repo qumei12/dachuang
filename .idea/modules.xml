@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/UserServiceRcommandWebServer.iml" filepath="$PROJECT_DIR$/UserServiceRcommandWebServer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/MedicalSuppliesRecommendationSystem.iml" filepath="$PROJECT_DIR$/MedicalSuppliesRecommendationSystem.iml" />
     </modules>
   </component>
 </project>

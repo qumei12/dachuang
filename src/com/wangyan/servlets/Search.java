@@ -151,7 +151,7 @@ public class Search extends HttpServlet {
 	 * @return 支付标准金额，如果未找到则返回0.0
 	 */
 	private static double getPaymentStandardByDrgCode(String drgCode) {
-		String CSV_FILE_PATH = "D:\\数据\\单病种用耗推荐模型_数据源.csv";
+		String CSV_FILE_PATH = "D:\\dachuang\\数据\\单病种用耗推荐模型_数据源.csv";
 		
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CSV_FILE_PATH), StandardCharsets.UTF_8))) {
 			String line;
@@ -196,7 +196,7 @@ public class Search extends HttpServlet {
 	 * @return 排名百分比（0-100），0%表示最便宜，100%表示最贵
 	 */
 	private static double calculateAmountRankPercentile(String drgCode, double targetAmount) {
-		String CSV_FILE_PATH = "D:\\数据\\单病种用耗推荐模型_数据源.csv";
+		String CSV_FILE_PATH = "D:\\dachuang\\数据\\单病种用耗推荐模型_数据源.csv";
 		Map<String, Double> caseIdToAmount = new HashMap<>(); // 用于去重，key为病案ID，value为金额
 		
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CSV_FILE_PATH), StandardCharsets.UTF_8))) {
@@ -894,7 +894,7 @@ public class Search extends HttpServlet {
 	 * @return 包含病案信息和耗材列表的Map
 	 */
 	private static Map<String, Object> getHighestCostCaseSupplies(String drgCode, int maxSupplies) {
-		String CSV_FILE_PATH = "D:\\数据\\单病种用耗推荐模型_数据源.csv";
+		String CSV_FILE_PATH = "D:\\dachuang\\数据\\单病种用耗推荐模型_数据源.csv";
 		Map<String, Object> result = new HashMap<>();
 		
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CSV_FILE_PATH), StandardCharsets.UTF_8))) {
@@ -1007,7 +1007,7 @@ public class Search extends HttpServlet {
 	 * @return 包含病案信息和耗材列表的Map
 	 */
 	private static Map<String, Object> getLowestCostCaseSupplies(String drgCode, int maxSupplies) {
-		String CSV_FILE_PATH = "D:\\数据\\单病种用耗推荐模型_数据源.csv";
+		String CSV_FILE_PATH = "D:\\dachuang\\数据\\单病种用耗推荐模型_数据源.csv";
 		Map<String, Object> result = new HashMap<>();
 		
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CSV_FILE_PATH), StandardCharsets.UTF_8))) {

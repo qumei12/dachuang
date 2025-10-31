@@ -339,7 +339,6 @@ p, p>a {
 	<div class="foot">
 		<div class="copyright">
         	<p>
-            ©2016 Designed by Wang.Yan <a href="#">使用说明</a> <a href="#">意见反馈</a> 京ICP证000001号 
         	</p>
     	</div>
 	</div>
