@@ -8,6 +8,7 @@ public class Disease {
 	private String DESCRIPTION;
 	private String URL;
 	private Date DATE;
+	private String drgPaymentStandard;
 	
 	public Disease() {
 		super();
@@ -49,6 +50,7 @@ public class Disease {
 		result = prime * result + ((NAME == null) ? 0 : NAME.hashCode());
 		result = prime * result + ((URL == null) ? 0 : URL.hashCode());
 		result = prime * result + ((DATE == null) ? 0 : DATE.hashCode());
+		result = prime * result + ((drgPaymentStandard == null) ? 0 : drgPaymentStandard.hashCode());
 		result = prime * result + ID;
 		return result;
 	}
@@ -82,16 +84,29 @@ public class Disease {
 				return false;
 		} else if (!DATE.equals(other.DATE))
 			return false;
+		if (drgPaymentStandard == null) {
+			if (other.drgPaymentStandard != null)
+				return false;
+		} else if (!drgPaymentStandard.equals(other.drgPaymentStandard))
+			return false;
 		if (ID != other.ID)
 			return false;
 		return true;
+	}
+
+	public String getDrgPaymentStandard() {
+		return drgPaymentStandard;
+	}
+
+	public void setDrgPaymentStandard(String drgPaymentStandard) {
+		this.drgPaymentStandard = drgPaymentStandard;
 	}
 
 	@Override
 	public String toString() {
 		return "Disease [ID=" + ID + ", NAME=" + NAME
 				+ ", DESCRIPTION=" + DESCRIPTION + ", URL=" + URL
-				+ ", DATE=" + DATE + "]";
+				+ ", DATE=" + DATE + ", DRG支付标准=" + drgPaymentStandard + "]";
 	}
 	
 	

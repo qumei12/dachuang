@@ -26,10 +26,7 @@ dachuang/
 
 ## 数据源
 
-系统使用两种数据源：
-
-1. **主数据源**：`D:\dachuang\数据\单病种用耗推荐模型_数据源.csv` - 包含完整的病案、耗材及相关信息的综合数据文件
-2. **分表数据源**（用于训练）：
+系统使用分表数据源（用于训练）：
    - `D:\dachuang\数据\病例表.csv` - 病例数据
    - `D:\dachuang\数据\病种表.csv` - 病种数据
    - `D:\dachuang\数据\耗材表.csv` - 耗材数据
@@ -84,6 +81,8 @@ private static String dbPassword = "root";
 javac -cp "src;WebContent/WEB-INF/lib/*" src/dbhelper/DatabaseInitializer.java
 java -cp "src;WebContent/WEB-INF/lib/*" dbhelper.DatabaseInitializer
 ```
+
+> **注意**：此操作会删除已存在的表并重新创建，确保不会保留旧的表结构。
 
 #### 3.2 导入数据
 运行`src/filehelper/CompleteImportProcess.java`导入CSV数据：
@@ -154,7 +153,8 @@ java -cp "src;WebContent/WEB-INF/lib/*" filehelper.CompleteImportProcess
 3. 建议使用预训练模型以提高系统响应速度
 4. 系统根据病种在各主题上的概率分布动态确定推荐主题数量
 5. 系统使用UTF-8编码，确保数据文件编码一致
-6. 系统启动时会自动加载预训练模型，如果未找到模型文件，将在首次请求时进行实时训练
+6. CSV数据文件必须使用UTF-8编码，避免中文乱码问题
+7. 系统启动时会自动加载预训练模型，如果未找到模型文件，将在首次请求时进行实时训练
 
 ## 故障排除
 

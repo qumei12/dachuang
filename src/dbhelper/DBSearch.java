@@ -5,11 +5,20 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.math.BigDecimal;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javabean.Case;
 import javabean.Disease;
 import javabean.Supply;
 
@@ -37,8 +46,9 @@ public class DBSearch {
 				disease.setID(rs.getInt(1));
 				disease.setNAME(rs.getString(2));
 				disease.setDESCRIPTION(rs.getString(3));
-				// disease.setURL(rs.getString(4));
-				// disease.setDATE(rs.getDate(5));
+				disease.setDrgPaymentStandard(rs.getString(4));
+				// disease.setURL(rs.getString(5));
+				// disease.setDATE(rs.getDate(6));
 
 				mashupList.add(disease);
 			}
@@ -91,6 +101,8 @@ public class DBSearch {
 				supply.setPRODUCT_NAME(rs.getString("C_PRODUCT_NAME")); // 产品名称
 				supply.setDESCRIPTION(rs.getString("C_SPECIFICATION")); // 规格作为描述
 				supply.setPRICE(rs.getString("C_PRICE"));           // 价格
+				supply.setQUANTITY(rs.getInt("C_QUANTITY"));        // 数量
+				supply.setURL(rs.getString("C_SPECIFICATION"));            // 规格
 				// 注意：DISEASE_ID和SUPPLY_ID在当前上下文中没有直接对应字段
 				// N_CASE_ID是关联病例ID，不是病种ID
 
@@ -174,7 +186,7 @@ public class DBSearch {
 				supply.setPRODUCT_NAME(rs.getString("C_PRODUCT_NAME"));    // 产品名称
 				supply.setDESCRIPTION(rs.getString("C_SPECIFICATION"));    // 规格作为描述
 				supply.setPRICE(rs.getString("C_PRICE"));                  // 价格
-				// URL字段在数据库中对应C_SPECIFICATION（规格）
+				supply.setQUANTITY(rs.getInt("C_QUANTITY"));               // 数量
 				supply.setURL(rs.getString("C_SPECIFICATION"));            // 规格
 			}
 		} catch (SQLException e) {
@@ -210,9 +222,10 @@ public class DBSearch {
 				disease.setID(rs.getInt(1));
 				disease.setNAME(rs.getString(2));
 				disease.setDESCRIPTION(rs.getString(3));
+				disease.setDrgPaymentStandard(rs.getString(4));
 				// 根据数据库实际结构，表中可能没有URL和DATE字段
-				// disease.setURL(rs.getString(4));
-				// disease.setDATE(rs.getDate(5));
+				// disease.setURL(rs.getString(5));
+				// disease.setDATE(rs.getDate(6));
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -252,9 +265,10 @@ public class DBSearch {
 				disease.setID(rs.getInt(1));
 				disease.setNAME(rs.getString(2));
 				disease.setDESCRIPTION(rs.getString(3));
+				disease.setDrgPaymentStandard(rs.getString(4));
 				// 根据数据库实际结构，表中可能没有URL和DATE字段
-				// disease.setURL(rs.getString(4));
-				// disease.setDATE(rs.getDate(5));
+				// disease.setURL(rs.getString(5));
+				// disease.setDATE(rs.getDate(6));
 			} else {
 				disease = new Disease();
 				disease.setID(-1); // 设置为-1表示未找到
@@ -296,9 +310,10 @@ public class DBSearch {
 				disease.setID(rs.getInt(1));
 				disease.setNAME(rs.getString(2));
 				disease.setDESCRIPTION(rs.getString(3));
+				disease.setDrgPaymentStandard(rs.getString(4));
 				// 根据数据库实际结构，表中可能没有URL和DATE字段
-				// disease.setURL(rs.getString(4));
-				// disease.setDATE(rs.getDate(5));
+				// disease.setURL(rs.getString(5));
+				// disease.setDATE(rs.getDate(6));
 				diseases.add(disease);
 			}
 
@@ -413,6 +428,82 @@ public class DBSearch {
 		}
 
 		return count;
+	}
+	
+	/**
+	 * 根据病种ID获取病例的DRG明细总金额平均值
+	 * @param mashupId 病种ID
+	 * @return DRG明细总金额平均值
+	 */
+	public BigDecimal getAverageDrgDetailTotalAmountByMashupId(int mashupId) {
+		Connection connection = DBHelper.getConnection();
+		PreparedStatement statement = null;
+		BigDecimal averageAmount = BigDecimal.ZERO;
+		
+		try {
+			String sql = "SELECT AVG(C_DRG_DETAIL_TOTAL_AMOUNT) as avg_amount FROM tb_case WHERE N_MASHUP_ID = ?";
+			statement = connection.prepareStatement(sql);
+			statement.setInt(1, mashupId);
+			
+			ResultSet rs = statement.executeQuery();
+			
+			if (rs.next()) {
+				averageAmount = rs.getBigDecimal("avg_amount");
+				if (averageAmount == null) {
+					averageAmount = BigDecimal.ZERO;
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (statement != null) statement.close();
+				if (connection != null) connection.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return averageAmount;
+	}
+	
+	/**
+	 * 根据病种ID获取所有相关病例
+	 * @param mashupId 病种ID
+	 * @return 病例列表
+	 */
+	public List<Case> getCasesByMashupId(int mashupId) {
+		Connection connection = DBHelper.getConnection();
+		PreparedStatement statement = null;
+		List<Case> cases = new ArrayList<>();
+		
+		try {
+			String sql = "SELECT N_ID, N_MASHUP_ID, C_CASE_ID, C_DRG_DETAIL_TOTAL_AMOUNT FROM tb_case WHERE N_MASHUP_ID = ? ORDER BY C_DRG_DETAIL_TOTAL_AMOUNT";
+			statement = connection.prepareStatement(sql);
+			statement.setInt(1, mashupId);
+			
+			ResultSet rs = statement.executeQuery();
+			
+			while (rs.next()) {
+				Case caseObj = new Case();
+				caseObj.setId(rs.getInt("N_ID"));
+				caseObj.setMashupId(rs.getInt("N_MASHUP_ID"));
+				caseObj.setCaseId(rs.getString("C_CASE_ID"));
+				caseObj.setDrgDetailTotalAmount(rs.getBigDecimal("C_DRG_DETAIL_TOTAL_AMOUNT"));
+				cases.add(caseObj);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (statement != null) statement.close();
+				if (connection != null) connection.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return cases;
 	}
 
 }

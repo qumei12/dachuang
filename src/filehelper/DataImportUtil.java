@@ -2,7 +2,8 @@ package filehelper;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -40,7 +41,7 @@ public class DataImportUtil {
         PreparedStatement pstmt = null;
         Statement stmt = null;
         
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), "UTF-8"))) {
             connection = DBHelper.getConnection();
             if (connection == null) {
                 System.err.println("错误: 无法获取数据库连接");
@@ -53,7 +54,7 @@ public class DataImportUtil {
             System.out.println("已清空病例表数据");
             stmt.close();
             
-            String sql = "INSERT INTO tb_case (N_ID, N_MASHUP_ID, C_CASE_ID) VALUES (?, ?, ?)";
+            String sql = "INSERT INTO tb_case (N_ID, N_MASHUP_ID, C_CASE_ID, C_DRG_DETAIL_TOTAL_AMOUNT) VALUES (?, ?, ?, ?)";
             pstmt = connection.prepareStatement(sql);
             
             String line;
@@ -68,15 +69,17 @@ public class DataImportUtil {
                 }
                 
                 String[] values = line.split(",");
-                if (values.length >= 3) {
+                if (values.length >= 4) {
                     try {
                         int id = Integer.parseInt(values[0].trim());
                         int mashupId = Integer.parseInt(values[1].trim());
                         String caseId = values[2].trim();
+                        String drgDetailTotalAmount = values.length > 3 ? values[3].trim() : "0";
                         
                         pstmt.setInt(1, id);
                         pstmt.setInt(2, mashupId);
                         pstmt.setString(3, caseId);
+                        pstmt.setBigDecimal(4, new java.math.BigDecimal(drgDetailTotalAmount));
                         
                         pstmt.addBatch();
                         count++;
@@ -135,7 +138,7 @@ public class DataImportUtil {
         PreparedStatement pstmt = null;
         Statement stmt = null;
         
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), "UTF-8"))) {
             connection = DBHelper.getConnection();
             if (connection == null) {
                 System.err.println("错误: 无法获取数据库连接");
@@ -148,7 +151,7 @@ public class DataImportUtil {
             System.out.println("已清空病种表数据");
             stmt.close();
             
-            String sql = "INSERT INTO tb_disease (N_ID, C_NAME, C_DESCRIPTION) VALUES (?, ?, ?)";
+            String sql = "INSERT INTO tb_disease (N_ID, C_NAME, C_DESCRIPTION, C_DRG_PAYMENT_STANDARD) VALUES (?, ?, ?, ?)";
             pstmt = connection.prepareStatement(sql);
             
             String line;
@@ -163,15 +166,17 @@ public class DataImportUtil {
                 }
                 
                 String[] values = line.split(",");
-                if (values.length >= 3) {
+                if (values.length >= 4) {
                     try {
                         int id = Integer.parseInt(values[0].trim());
                         String name = values[1].trim();
                         String description = values[2].trim();
+                        String drgPaymentStandard = values.length > 3 ? values[3].trim() : "";
                         
                         pstmt.setInt(1, id);
                         pstmt.setString(2, name);
                         pstmt.setString(3, description);
+                        pstmt.setString(4, drgPaymentStandard);
                         
                         pstmt.addBatch();
                         count++;
@@ -230,7 +235,7 @@ public class DataImportUtil {
         PreparedStatement pstmt = null;
         Statement stmt = null;
         
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), "UTF-8"))) {
             connection = DBHelper.getConnection();
             if (connection == null) {
                 System.err.println("错误: 无法获取数据库连接");

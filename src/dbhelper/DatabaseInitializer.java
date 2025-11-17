@@ -43,25 +43,33 @@ public class DatabaseInitializer {
             statement.executeUpdate("USE db_mashup");
             
             // 创建病种表
-            String createDiseaseTableSql = "CREATE TABLE IF NOT EXISTS tb_disease (" +
+            String dropDiseaseTableSql = "DROP TABLE IF EXISTS tb_disease";
+            statement.executeUpdate(dropDiseaseTableSql);
+            String createDiseaseTableSql = "CREATE TABLE tb_disease (" +
                                           "N_ID INT PRIMARY KEY COMMENT '病种ID'," +
                                           "C_NAME VARCHAR(255) NOT NULL COMMENT '病种名称'," +
-                                          "C_DESCRIPTION TEXT COMMENT '病种描述'" +
+                                          "C_DESCRIPTION TEXT COMMENT '病种描述'," +
+                                          "C_DRG_PAYMENT_STANDARD VARCHAR(255) COMMENT 'DRG支付标准'" +
                                           ") COMMENT='病种表'";
             statement.executeUpdate(createDiseaseTableSql);
             System.out.println("病种表 tb_disease 创建成功");
             
             // 创建病例表
-            String createCaseTableSql = "CREATE TABLE IF NOT EXISTS tb_case (" +
+            String dropCaseTableSql = "DROP TABLE IF EXISTS tb_case";
+            statement.executeUpdate(dropCaseTableSql);
+            String createCaseTableSql = "CREATE TABLE tb_case (" +
                                        "N_ID INT PRIMARY KEY COMMENT '病例ID'," +
                                        "N_MASHUP_ID INT NOT NULL COMMENT '关联的病种ID'," +
-                                       "C_CASE_ID VARCHAR(50) NOT NULL COMMENT '病例编号'" +
+                                       "C_CASE_ID VARCHAR(50) NOT NULL COMMENT '病例编号'," +
+                                       "C_DRG_DETAIL_TOTAL_AMOUNT DECIMAL(10,2) COMMENT 'DRG明细总金额'" +
                                        ") COMMENT='病例表'";
             statement.executeUpdate(createCaseTableSql);
             System.out.println("病例表 tb_case 创建成功");
             
             // 创建耗材表
-            String createSupplyTableSql = "CREATE TABLE IF NOT EXISTS tb_supply (" +
+            String dropSupplyTableSql = "DROP TABLE IF EXISTS tb_supply";
+            statement.executeUpdate(dropSupplyTableSql);
+            String createSupplyTableSql = "CREATE TABLE tb_supply (" +
                                          "N_ID INT PRIMARY KEY COMMENT '耗材ID'," +
                                          "N_CASE_ID INT NOT NULL COMMENT '关联的病例ID'," +
                                          "C_NAME VARCHAR(255) NOT NULL COMMENT '耗材名称'," +

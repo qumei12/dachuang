@@ -9,6 +9,7 @@ public class Supply {
 	private int SUPPLY_ID;
 	private String PRODUCT_NAME; // 添加产品名称字段
 	private String PRICE; // 添加价格字段
+	private int QUANTITY; // 添加数量字段
 
 	public Supply() {
 		super();
@@ -79,6 +80,14 @@ public class Supply {
 	public void setPRICE(String price) {
 		PRICE = price;
 	}
+	
+	public int getQUANTITY() {
+		return QUANTITY;
+	}
+	
+	public void setQUANTITY(int quantity) {
+		QUANTITY = quantity;
+	}
 
 	@Override
 	public int hashCode() {
@@ -92,6 +101,7 @@ public class Supply {
 		result = prime * result + ((URL == null) ? 0 : URL.hashCode());
 		result = prime * result + ((PRODUCT_NAME == null) ? 0 : PRODUCT_NAME.hashCode());
 		result = prime * result + ((PRICE == null) ? 0 : PRICE.hashCode());
+		result = prime * result + QUANTITY;
 		return result;
 	}
 
@@ -135,13 +145,15 @@ public class Supply {
 				return false;
 		} else if (!PRICE.equals(other.PRICE))
 			return false;
+		if (QUANTITY != other.QUANTITY)
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
 		return "Supply [ID=" + ID + ", NAME=" + NAME + ", DESCRIPTION=" + DESCRIPTION + ", URL=" + URL + ", DISEASE_ID="
-				+ DISEASE_ID + ", SUPPLY_ID=" + SUPPLY_ID + ", PRODUCT_NAME=" + PRODUCT_NAME + ", PRICE=" + PRICE + "]";
+				+ DISEASE_ID + ", SUPPLY_ID=" + SUPPLY_ID + ", PRODUCT_NAME=" + PRODUCT_NAME + ", PRICE=" + PRICE + ", QUANTITY=" + QUANTITY + "]";
 	}
 
 }

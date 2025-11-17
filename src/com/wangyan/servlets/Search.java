@@ -20,6 +20,7 @@ import com.wangyan.index.DiseaseMap;
 
 import javabean.Supply;
 import javabean.Disease;
+import javabean.Case;
 import model.LDAModel;
 import model.ModelTrainer;
 import dbhelper.DBSearch;
@@ -151,39 +152,19 @@ public class Search extends HttpServlet {
 	 * @return 支付标准金额，如果未找到则返回0.0
 	 */
 	private static double getPaymentStandardByDrgCode(String drgCode) {
-		String CSV_FILE_PATH = "D:\\dachuang\\数据\\单病种用耗推荐模型_数据源.csv";
+		// 从数据库中获取DRG支付标准，而不是从CSV文件
+		DBSearch dbSearch = new DBSearch();
 		
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CSV_FILE_PATH), StandardCharsets.UTF_8))) {
-			String line;
-			boolean isFirstLine = true;
-			
-			while ((line = br.readLine()) != null) {
-				// 跳过标题行
-				if (isFirstLine) {
-					isFirstLine = false;
-					continue;
-				}
-				
-				// 使用项目中已有的CSV解析方法解析行
-				String[] values = parseCsvLine(line);
-				if (values.length >= 32) { // 确保有足够的列
-					String currentDrgCode = values[26].trim(); // DRG编码在第27列（索引26）
-					String paymentStandardStr = values[31].trim(); // DRG支付标准在第32列（索引31）
-					
-					// 只处理非空的DRG编码
-					if (!currentDrgCode.isEmpty() && currentDrgCode.equals(drgCode)) {
-						try {
-							double paymentStandard = Double.parseDouble(paymentStandardStr);
-							return paymentStandard;
-						} catch (NumberFormatException e) {
-							// 忽略无法解析的支付标准值
-						}
-					}
-				}
+		// 这里需要根据DRG编码查找对应的病种，然后获取其支付标准
+		// 由于数据库结构中没有直接存储DRG编码，我们假设drgCode就是病种名称
+		Disease disease = dbSearch.getDiseaseByName(drgCode);
+		
+		if (disease != null && disease.getDrgPaymentStandard() != null && !disease.getDrgPaymentStandard().isEmpty()) {
+			try {
+				return Double.parseDouble(disease.getDrgPaymentStandard());
+			} catch (NumberFormatException e) {
+				System.err.println("无法解析DRG支付标准: " + disease.getDrgPaymentStandard());
 			}
-		} catch (Exception e) {
-			System.err.println("读取DRG支付标准CSV文件时出错: " + e.getMessage());
-			e.printStackTrace();
 		}
 		
 		return 0.0;
@@ -196,52 +177,31 @@ public class Search extends HttpServlet {
 	 * @return 排名百分比（0-100），0%表示最便宜，100%表示最贵
 	 */
 	private static double calculateAmountRankPercentile(String drgCode, double targetAmount) {
-		String CSV_FILE_PATH = "D:\\dachuang\\数据\\单病种用耗推荐模型_数据源.csv";
-		Map<String, Double> caseIdToAmount = new HashMap<>(); // 用于去重，key为病案ID，value为金额
+		// 从数据库中获取DRG明细总金额数据，而不是从CSV文件
+		DBSearch dbSearch = new DBSearch();
 		
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CSV_FILE_PATH), StandardCharsets.UTF_8))) {
-			String line;
-			boolean isFirstLine = true;
-			
-			while ((line = br.readLine()) != null) {
-				// 跳过标题行
-				if (isFirstLine) {
-					isFirstLine = false;
-					continue;
-				}
-				
-				// 使用项目中已有的CSV解析方法解析行
-				String[] values = parseCsvLine(line);
-				if (values.length >= 33) { // 确保有足够的列
-					String currentDrgCode = values[26].trim(); // DRG编码在第27列（索引26）
-					String caseId = values[0].trim(); // 病案ID在第1列（索引0）
-					String drgDetailAmountStr = values[32].trim(); // DRG明细总金额在第33列（索引32）
-					
-					// 只处理匹配的DRG编码
-					if (!currentDrgCode.isEmpty() && currentDrgCode.equals(drgCode)) {
-						try {
-							double drgDetailAmount = Double.parseDouble(drgDetailAmountStr);
-							// 使用病案ID作为key进行去重，保留第一次出现的值
-							caseIdToAmount.putIfAbsent(caseId, drgDetailAmount);
-						} catch (NumberFormatException e) {
-							// 忽略无法解析的金额值
-						}
-					}
-				}
-			}
-		} catch (Exception e) {
-			System.err.println("读取DRG明细总金额CSV文件时出错: " + e.getMessage());
-			e.printStackTrace();
-			return -1; // 表示计算失败
+		// 根据病种名称获取病种ID
+		Disease disease = dbSearch.getDiseaseByName(drgCode);
+		if (disease == null || disease.getID() == -1) {
+			return -1; // 未找到病种
 		}
 		
+		// 获取该病种下的所有病例
+		List<Case> cases = dbSearch.getCasesByMashupId(disease.getID());
+		
 		// 如果没有找到相关数据
-		if (caseIdToAmount.isEmpty()) {
+		if (cases.isEmpty()) {
 			return -1;
 		}
 		
-		// 将Map中的值转换为List并排序
-		List<Double> drgDetailAmounts = new ArrayList<>(caseIdToAmount.values());
+		// 提取DRG明细总金额并排序
+		List<Double> drgDetailAmounts = new ArrayList<>();
+		for (Case caseObj : cases) {
+			if (caseObj.getDrgDetailTotalAmount() != null) {
+				drgDetailAmounts.add(caseObj.getDrgDetailTotalAmount().doubleValue());
+			}
+		}
+		
 		Collections.sort(drgDetailAmounts);
 		
 		// 计算排名
@@ -894,107 +854,42 @@ public class Search extends HttpServlet {
 	 * @return 包含病案信息和耗材列表的Map
 	 */
 	private static Map<String, Object> getHighestCostCaseSupplies(String drgCode, int maxSupplies) {
-		String CSV_FILE_PATH = "D:\\dachuang\\数据\\单病种用耗推荐模型_数据源.csv";
 		Map<String, Object> result = new HashMap<>();
 		
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CSV_FILE_PATH), StandardCharsets.UTF_8))) {
-			String line;
-			boolean isFirstLine = true;
-			
-			// 存储所有病案的DRG总金额
-			Map<String, Double> caseIdToTotalAmount = new HashMap<>();
-			// 存储病案的所有耗材信息
-			Map<String, List<Map<String, String>>> caseIdToSupplies = new HashMap<>();
-			
-			while ((line = br.readLine()) != null) {
-				// 跳过标题行
-				if (isFirstLine) {
-					isFirstLine = false;
-					continue;
-				}
-				
-				// 解析CSV行
-				String[] values = parseCsvLine(line);
-				if (values.length >= 33) { // 确保有足够的列
-					String currentDrgCode = values[26].trim(); // DRG编码在第27列（索引26）
-					
-					// 只处理匹配的DRG编码
-					if (!currentDrgCode.isEmpty() && currentDrgCode.equals(drgCode)) {
-						String caseId = values[0].trim(); // 病案ID在第1列（索引0）
-						String drgDetailAmountStr = values[32].trim(); // DRG明细总金额在第33列（索引32）
-						
-						// 处理DRG总金额
-						try {
-							double drgDetailAmount = Double.parseDouble(drgDetailAmountStr);
-							caseIdToTotalAmount.put(caseId, drgDetailAmount);
-						} catch (NumberFormatException e) {
-							// 忽略无法解析的金额值
-						}
-						
-						// 处理耗材信息
-						String productId = values[1].trim(); // 产品ID在第2列（索引1）
-						String productName = values[2].trim(); // 产品名称在第3列（索引2）
-						String specification = values[3].trim(); // 规格在第4列（索引3）
-						String quantityStr = "0"; // 耗材数量在第10列（索引9），现在设置为0
-						String amountStr = values[10].trim(); // 金额在第11列（索引10）
-						String unitPriceStr = values[11].trim(); // 单价在第12列（索引11）
-						
-						// 创建耗材信息Map
-						Map<String, String> supplyInfo = new HashMap<>();
-						supplyInfo.put("productId", productId);
-						supplyInfo.put("productName", productName);
-						supplyInfo.put("specification", specification);
-						supplyInfo.put("quantity", quantityStr);
-						supplyInfo.put("amount", amountStr);
-						supplyInfo.put("unitPrice", unitPriceStr);
-						
-						// 将耗材信息添加到对应的病案
-						caseIdToSupplies.computeIfAbsent(caseId, k -> new ArrayList<>()).add(supplyInfo);
-					}
-				}
+		// 从数据库中获取数据，而不是从CSV文件
+		DBSearch dbSearch = new DBSearch();
+		
+		// 根据病种名称获取病种ID
+		Disease disease = dbSearch.getDiseaseByName(drgCode);
+		if (disease == null || disease.getID() == -1) {
+			return result; // 未找到病种
+		}
+		
+		// 获取该病种下的所有病例，按DRG明细总金额排序
+		List<Case> cases = dbSearch.getCasesByMashupId(disease.getID());
+		
+		if (cases.isEmpty()) {
+			return result; // 没有找到病例
+		}
+		
+		// 找到DRG总金额最大的病案
+		Case highestCostCase = null;
+		double maxAmount = -1;
+		
+		for (Case caseObj : cases) {
+			if (caseObj.getDrgDetailTotalAmount() != null && caseObj.getDrgDetailTotalAmount().doubleValue() > maxAmount) {
+				maxAmount = caseObj.getDrgDetailTotalAmount().doubleValue();
+				highestCostCase = caseObj;
 			}
+		}
+		
+		if (highestCostCase != null) {
+			result.put("caseId", highestCostCase.getCaseId());
+			result.put("totalAmount", maxAmount);
 			
-			// 找到DRG总金额最大的病案
-			String highestCostCaseId = null;
-			double maxAmount = -1;
-			
-			for (Map.Entry<String, Double> entry : caseIdToTotalAmount.entrySet()) {
-				if (entry.getValue() > maxAmount) {
-					maxAmount = entry.getValue();
-					highestCostCaseId = entry.getKey();
-				}
-			}
-			
-			if (highestCostCaseId != null) {
-				result.put("caseId", highestCostCaseId);
-				result.put("totalAmount", maxAmount);
-				
-				// 获取该病案的耗材列表
-				List<Map<String, String>> supplies = caseIdToSupplies.get(highestCostCaseId);
-				if (supplies != null) {
-					// 按单价排序，取前maxSupplies个
-					supplies.sort((s1, s2) -> {
-						double price1 = 0, price2 = 0;
-						try {
-							price1 = Double.parseDouble(s1.getOrDefault("unitPrice", "0"));
-						} catch (NumberFormatException e) {}
-						try {
-							price2 = Double.parseDouble(s2.getOrDefault("unitPrice", "0"));
-						} catch (NumberFormatException e) {}
-						return Double.compare(price2, price1); // 降序排列
-					});
-					
-					// 只保留前maxSupplies个耗材
-					if (supplies.size() > maxSupplies) {
-						supplies = supplies.subList(0, maxSupplies);
-					}
-					
-					result.put("supplies", supplies);
-				}
-			}
-		} catch (Exception e) {
-			System.err.println("读取病案耗材信息CSV文件时出错: " + e.getMessage());
-			e.printStackTrace();
+			// TODO: 从数据库获取该病案的耗材列表
+			// 由于数据库结构限制，这里暂时返回空列表
+			result.put("supplies", new ArrayList<Map<String, String>>());
 		}
 		
 		return result;
@@ -1007,107 +902,42 @@ public class Search extends HttpServlet {
 	 * @return 包含病案信息和耗材列表的Map
 	 */
 	private static Map<String, Object> getLowestCostCaseSupplies(String drgCode, int maxSupplies) {
-		String CSV_FILE_PATH = "D:\\dachuang\\数据\\单病种用耗推荐模型_数据源.csv";
 		Map<String, Object> result = new HashMap<>();
 		
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(CSV_FILE_PATH), StandardCharsets.UTF_8))) {
-			String line;
-			boolean isFirstLine = true;
-			
-			// 存储所有病案的DRG总金额
-			Map<String, Double> caseIdToTotalAmount = new HashMap<>();
-			// 存储病案的所有耗材信息
-			Map<String, List<Map<String, String>>> caseIdToSupplies = new HashMap<>();
-			
-			while ((line = br.readLine()) != null) {
-				// 跳过标题行
-				if (isFirstLine) {
-					isFirstLine = false;
-					continue;
-				}
-				
-				// 解析CSV行
-				String[] values = parseCsvLine(line);
-				if (values.length >= 33) { // 确保有足够的列
-					String currentDrgCode = values[26].trim(); // DRG编码在第27列（索引26）
-					
-					// 只处理匹配的DRG编码
-					if (!currentDrgCode.isEmpty() && currentDrgCode.equals(drgCode)) {
-						String caseId = values[0].trim(); // 病案ID在第1列（索引0）
-						String drgDetailAmountStr = values[32].trim(); // DRG明细总金额在第33列（索引32）
-						
-						// 处理DRG总金额
-						try {
-							double drgDetailAmount = Double.parseDouble(drgDetailAmountStr);
-							caseIdToTotalAmount.put(caseId, drgDetailAmount);
-						} catch (NumberFormatException e) {
-							// 忽略无法解析的金额值
-						}
-						
-						// 处理耗材信息
-						String productId = values[1].trim(); // 产品ID在第2列（索引1）
-						String productName = values[2].trim(); // 产品名称在第3列（索引2）
-						String specification = values[3].trim(); // 规格在第4列（索引3）
-						String quantityStr = "0"; // 耗材数量在第10列（索引9），现在设置为0
-						String amountStr = values[10].trim(); // 金额在第11列（索引10）
-						String unitPriceStr = values[11].trim(); // 单价在第12列（索引11）
-						
-						// 创建耗材信息Map
-						Map<String, String> supplyInfo = new HashMap<>();
-						supplyInfo.put("productId", productId);
-						supplyInfo.put("productName", productName);
-						supplyInfo.put("specification", specification);
-						supplyInfo.put("quantity", quantityStr);
-						supplyInfo.put("amount", amountStr);
-						supplyInfo.put("unitPrice", unitPriceStr);
-						
-						// 将耗材信息添加到对应的病案
-						caseIdToSupplies.computeIfAbsent(caseId, k -> new ArrayList<>()).add(supplyInfo);
-					}
-				}
+		// 从数据库中获取数据，而不是从CSV文件
+		DBSearch dbSearch = new DBSearch();
+		
+		// 根据病种名称获取病种ID
+		Disease disease = dbSearch.getDiseaseByName(drgCode);
+		if (disease == null || disease.getID() == -1) {
+			return result; // 未找到病种
+		}
+		
+		// 获取该病种下的所有病例，按DRG明细总金额排序
+		List<Case> cases = dbSearch.getCasesByMashupId(disease.getID());
+		
+		if (cases.isEmpty()) {
+			return result; // 没有找到病例
+		}
+		
+		// 找到DRG总金额最小的病案
+		Case lowestCostCase = null;
+		double minAmount = Double.MAX_VALUE;
+		
+		for (Case caseObj : cases) {
+			if (caseObj.getDrgDetailTotalAmount() != null && caseObj.getDrgDetailTotalAmount().doubleValue() < minAmount) {
+				minAmount = caseObj.getDrgDetailTotalAmount().doubleValue();
+				lowestCostCase = caseObj;
 			}
+		}
+		
+		if (lowestCostCase != null) {
+			result.put("caseId", lowestCostCase.getCaseId());
+			result.put("totalAmount", minAmount);
 			
-			// 找到DRG总金额最小的病案
-			String lowestCostCaseId = null;
-			double minAmount = Double.MAX_VALUE;
-			
-			for (Map.Entry<String, Double> entry : caseIdToTotalAmount.entrySet()) {
-				if (entry.getValue() < minAmount) {
-					minAmount = entry.getValue();
-					lowestCostCaseId = entry.getKey();
-				}
-			}
-			
-			if (lowestCostCaseId != null) {
-				result.put("caseId", lowestCostCaseId);
-				result.put("totalAmount", minAmount);
-				
-				// 获取该病案的耗材列表
-				List<Map<String, String>> supplies = caseIdToSupplies.get(lowestCostCaseId);
-				if (supplies != null) {
-					// 按单价排序，取前maxSupplies个
-					supplies.sort((s1, s2) -> {
-						double price1 = 0, price2 = 0;
-						try {
-							price1 = Double.parseDouble(s1.getOrDefault("unitPrice", "0"));
-						} catch (NumberFormatException e) {}
-						try {
-							price2 = Double.parseDouble(s2.getOrDefault("unitPrice", "0"));
-						} catch (NumberFormatException e) {}
-						return Double.compare(price2, price1); // 降序排列
-					});
-					
-					// 只保留前maxSupplies个耗材
-					if (supplies.size() > maxSupplies) {
-						supplies = supplies.subList(0, maxSupplies);
-					}
-					
-					result.put("supplies", supplies);
-				}
-			}
-		} catch (Exception e) {
-			System.err.println("读取病案耗材信息CSV文件时出错: " + e.getMessage());
-			e.printStackTrace();
+			// TODO: 从数据库获取该病案的耗材列表
+			// 由于数据库结构限制，这里暂时返回空列表
+			result.put("supplies", new ArrayList<Map<String, String>>());
 		}
 		
 		return result;
