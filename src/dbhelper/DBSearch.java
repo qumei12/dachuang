@@ -505,5 +505,41 @@ public class DBSearch {
 		
 		return cases;
 	}
-
+	
+	/**
+	 * 根据病案ID获取该病案使用的所有耗材
+	 * @param caseId 病案ID
+	 * @return 耗材列表
+	 */
+	public List<Map<String, String>> getSuppliesByCaseId(int caseId) {
+		Connection connection = DBHelper.getConnection();
+		Statement statement = null;
+		List<Map<String, String>> supplies = new ArrayList<>();
+		
+		try {
+			statement = connection.createStatement();
+			String sql = "SELECT N_ID, C_NAME, C_PRODUCT_NAME, C_SPECIFICATION, C_PRICE FROM tb_supply WHERE N_CASE_ID = " + caseId;
+			ResultSet rs = statement.executeQuery(sql);
+			
+			while (rs.next()) {
+				Map<String, String> supplyInfo = new HashMap<>();
+				supplyInfo.put("productId", String.valueOf(rs.getInt("N_ID")));
+				supplyInfo.put("productName", rs.getString("C_PRODUCT_NAME"));
+				supplyInfo.put("specification", rs.getString("C_SPECIFICATION"));
+				supplyInfo.put("unitPrice", rs.getString("C_PRICE"));
+				supplies.add(supplyInfo);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (statement != null) statement.close();
+				if (connection != null) connection.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return supplies;
+	}
 }

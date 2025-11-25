@@ -37,6 +37,12 @@ import java.util.Set;
 import java.io.File;
 import java.io.FileNotFoundException;
 
+// 添加数据库相关的导入
+import java.sql.Connection;
+import java.sql.Statement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 /**
  * Servlet implementation class Search
  */
@@ -887,9 +893,15 @@ public class Search extends HttpServlet {
 			result.put("caseId", highestCostCase.getCaseId());
 			result.put("totalAmount", maxAmount);
 			
-			// TODO: 从数据库获取该病案的耗材列表
-			// 由于数据库结构限制，这里暂时返回空列表
-			result.put("supplies", new ArrayList<Map<String, String>>());
+			// 从数据库获取该病案的耗材列表
+			List<Map<String, String>> supplies = dbSearch.getSuppliesByCaseId(highestCostCase.getId());
+			
+			// 如果需要限制返回的耗材数量
+			if (supplies.size() > maxSupplies) {
+				supplies = supplies.subList(0, maxSupplies);
+			}
+			
+			result.put("supplies", supplies);
 		}
 		
 		return result;
@@ -935,9 +947,15 @@ public class Search extends HttpServlet {
 			result.put("caseId", lowestCostCase.getCaseId());
 			result.put("totalAmount", minAmount);
 			
-			// TODO: 从数据库获取该病案的耗材列表
-			// 由于数据库结构限制，这里暂时返回空列表
-			result.put("supplies", new ArrayList<Map<String, String>>());
+			// 从数据库获取该病案的耗材列表
+			List<Map<String, String>> supplies = dbSearch.getSuppliesByCaseId(lowestCostCase.getId());
+			
+			// 如果需要限制返回的耗材数量
+			if (supplies.size() > maxSupplies) {
+				supplies = supplies.subList(0, maxSupplies);
+			}
+			
+			result.put("supplies", supplies);
 		}
 		
 		return result;
